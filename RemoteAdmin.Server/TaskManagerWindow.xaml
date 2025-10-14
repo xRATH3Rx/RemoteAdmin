@@ -1,0 +1,92 @@
+﻿<Window x:Class="RemoteAdmin.Server.TaskManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Task Manager" Height="600" Width="900"
+        Closed="Window_Closed">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#2D2D30" Padding="10">
+            <StackPanel>
+                <TextBlock x:Name="txtClientInfo" 
+                           Text="Connected to: ComputerName" 
+                           Foreground="White" 
+                           FontWeight="Bold"/>
+                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                    <TextBlock x:Name="txtStatus" 
+                               Text="Status: Ready" 
+                               Foreground="LimeGreen" 
+                               FontSize="11"/>
+                    <Button x:Name="btnRefresh"
+                            Content="🔄 Refresh"
+                            Margin="20,0,0,0"
+                            Padding="8,2"
+                            Click="btnRefresh_Click"
+                            Background="#0E639C"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Cursor="Hand"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Tabs -->
+        <TabControl Grid.Row="1" Margin="10">
+            <!-- Processes Tab -->
+            <TabItem Header="Processes">
+                <Grid>
+                    <DataGrid x:Name="ProcessesGrid"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              CanUserSortColumns="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="250"/>
+                            <DataGridTextColumn Header="PID" Binding="{Binding Id}" Width="80"/>
+                            <DataGridTextColumn Header="Memory (MB)" Binding="{Binding MemoryMB}" Width="120"/>
+                            <DataGridTextColumn Header="CPU %" Binding="{Binding CpuPercent}" Width="100"/>
+                        </DataGrid.Columns>
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Kill Process" Click="KillProcess_Click" FontWeight="Bold"/>
+                                <Separator/>
+                                <MenuItem Header="Refresh" Click="btnRefresh_Click"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- Services Tab -->
+            <TabItem Header="Services">
+                <Grid>
+                    <DataGrid x:Name="ServicesGrid"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              CanUserSortColumns="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="200"/>
+                            <DataGridTextColumn Header="Display Name" Binding="{Binding DisplayName}" Width="300"/>
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100"/>
+                            <DataGridTextColumn Header="Startup Type" Binding="{Binding StartupType}" Width="120"/>
+                        </DataGrid.Columns>
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Start Service" Click="StartService_Click"/>
+                                <MenuItem Header="Stop Service" Click="StopService_Click"/>
+                                <MenuItem Header="Restart Service" Click="RestartService_Click" FontWeight="Bold"/>
+                                <Separator/>
+                                <MenuItem Header="Refresh" Click="btnRefresh_Click"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

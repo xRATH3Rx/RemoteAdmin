@@ -1,0 +1,107 @@
+﻿<Window x:Class="RemoteAdmin.Server.ShellWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Remote Shell" Height="500" Width="800"
+        Closed="Window_Closed">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#2D2D30" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock x:Name="txtClientInfo" 
+                               Text="Connected to: ComputerName" 
+                               Foreground="White" 
+                               FontWeight="Bold"/>
+                    <TextBlock x:Name="txtStatus" 
+                               Text="Status: Connected" 
+                               Foreground="LimeGreen" 
+                               FontSize="11"
+                               Margin="0,5,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock Text="Shell Type:" 
+                               Foreground="White" 
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"/>
+                    <ComboBox x:Name="cboShellType" 
+                              Width="120"
+                              SelectedIndex="0"
+                              SelectionChanged="cboShellType_SelectionChanged">
+                        <ComboBoxItem Content="PowerShell"/>
+                        <ComboBoxItem Content="CMD"/>
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Output Display -->
+        <Border Grid.Row="1" Background="#1E1E1E" BorderBrush="#3F3F46" BorderThickness="1">
+            <ScrollViewer x:Name="OutputScroller" VerticalScrollBarVisibility="Auto">
+                <TextBox x:Name="txtOutput" 
+                         Background="#1E1E1E" 
+                         Foreground="#D4D4D4"
+                         FontFamily="Consolas"
+                         FontSize="12"
+                         IsReadOnly="True"
+                         TextWrapping="Wrap"
+                         BorderThickness="0"
+                         Padding="10"
+                         VerticalScrollBarVisibility="Auto"/>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Input Area -->
+        <Border Grid.Row="2" Background="#2D2D30" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" 
+                           Text=">" 
+                           Foreground="LimeGreen" 
+                           FontFamily="Consolas"
+                           FontSize="14"
+                           VerticalAlignment="Center"
+                           Margin="0,0,10,0"/>
+
+                <TextBox x:Name="txtCommand" 
+                         Grid.Column="1"
+                         Background="#3F3F46"
+                         Foreground="White"
+                         FontFamily="Consolas"
+                         FontSize="12"
+                         BorderThickness="1"
+                         BorderBrush="#555555"
+                         Padding="5"
+                         KeyDown="txtCommand_KeyDown"/>
+
+                <Button x:Name="btnSend" 
+                        Grid.Column="2"
+                        Content="Send"
+                        Width="80"
+                        Margin="10,0,0,0"
+                        Click="btnSend_Click"
+                        Background="#0E639C"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Padding="10,5"
+                        Cursor="Hand"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

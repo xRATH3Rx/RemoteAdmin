@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+	<!-- Merge ONLY managed libs into the main DLL (net8 uses a native exe host) -->
+	<Target Name="ILRepacker" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+		<Message Text="=== ILRepack (custom, merging DLL) ===" Importance="High" />
+
+		<ItemGroup>
+			<!-- Primary managed assembly -->
+			<InputAssemblies Include="$(TargetDir)$(AssemblyName).dll" />
+			<!-- Your managed dependencies -->
+			<InputAssemblies Include="$(TargetDir)RemoteAdmin.Shared.dll" Condition="Exists('$(TargetDir)RemoteAdmin.Shared.dll')" />
+			<InputAssemblies Include="$(TargetDir)Newtonsoft.Json.dll" Condition="Exists('$(TargetDir)Newtonsoft.Json.dll')" />
+			<!-- Avoid framework packs (most System.*). Only include a System.* if an actual DLL sits in TargetDir -->
+		</ItemGroup>
+
+		<ILRepack
+		  Parallel="true"
+		  Internalize="true"
+		  InputAssemblies="@(InputAssemblies)"
+		  TargetKind="SameAsPrimaryAssembly"
+		  OutputFile="$(TargetDir)$(AssemblyName).dll" />
+	</Target>
+
+	<!-- Copy the merged DLL as client.bin (template for your builder) -->
+	<Target Name="CopyClientBinWin" AfterTargets="ILRepacker" Condition="'$(OS)' == 'Windows_NT'">
+		<Message Text="Copying $(TargetDir)$(AssemblyName).dll → $(TargetDir)client.bin" Importance="High" />
+		<Exec Command='copy "$(TargetDir)$(AssemblyName).dll" "$(TargetDir)client.bin" /Y' />
+	</Target>
+
+	<Target Name="CopyClientBinUnix" AfterTargets="ILRepacker" Condition="'$(OS)' != 'Windows_NT'">
+		<Exec Command='cp "$(TargetDir)$(AssemblyName).dll" "$(TargetDir)client.bin"' />
+	</Target>
+</Project>

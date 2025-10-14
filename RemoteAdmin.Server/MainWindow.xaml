@@ -1,0 +1,319 @@
+﻿<Window x:Class="RemoteAdmin.Server.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="RemoteAdmin Server" Height="600" Width="900"
+        Loaded="Window_Loaded"
+        Background="#1E1E1E"
+        Foreground="#F0F0F0">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="PrimaryDarkBackground" Color="#1E1E1E"/>
+        <SolidColorBrush x:Key="SecondaryDarkBackground" Color="#2D2D30"/>
+        <SolidColorBrush x:Key="ControlBackground" Color="#333337"/>
+        <SolidColorBrush x:Key="ControlBorder" Color="#555555"/>
+        <SolidColorBrush x:Key="AccentPurple" Color="#A54ED5"/>
+        <SolidColorBrush x:Key="AccentPurpleHover" Color="#B876E8"/>
+        <SolidColorBrush x:Key="LightForeground" Color="#F0F0F0"/>
+        <SolidColorBrush x:Key="GrayText" Color="#AAAAAA"/>
+        <SolidColorBrush x:Key="SuccessGreen" Color="#4CAF50"/>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource LightForeground}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AccentPurple}"/>
+            <Setter Property="Foreground" Value="{StaticResource LightForeground}"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentPurple}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{StaticResource AccentPurpleHover}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#8A3DC0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{StaticResource ControlBackground}"/>
+            <Setter Property="Foreground" Value="{StaticResource LightForeground}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ControlBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="{StaticResource PrimaryDarkBackground}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="{StaticResource GrayText}"/>
+            <Setter Property="Background" Value="{StaticResource SecondaryDarkBackground}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,3"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource AccentPurple}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource AccentPurple}"/>
+                    <Setter Property="Background" Value="{StaticResource PrimaryDarkBackground}"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource LightForeground}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="{StaticResource SecondaryDarkBackground}"/>
+            <Setter Property="Foreground" Value="{StaticResource LightForeground}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ControlBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource ControlBorder}"/>
+            <Setter Property="VerticalGridLinesBrush" Value="Transparent"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="RowBackground" Value="{StaticResource SecondaryDarkBackground}"/>
+            <Setter Property="AlternatingRowBackground" Value="{StaticResource ControlBackground}"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="{StaticResource ControlBackground}"/>
+            <Setter Property="Foreground" Value="{StaticResource AccentPurple}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ControlBorder}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+        </Style>
+        <Style TargetType="DataGridRow">
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#4A3466"/>
+                    <Setter Property="Foreground" Value="{StaticResource LightForeground}"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#38383C"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="DataGridCell">
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{x:Null}"/>
+                    <Setter Property="BorderBrush" Value="{x:Null}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="ContextMenu">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Background" Value="{StaticResource SecondaryDarkBackground}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ControlBorder}"/>
+            <Setter Property="Foreground" Value="{StaticResource LightForeground}"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4">
+                            <StackPanel IsItemsHost="True"
+                                KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="MenuItem">
+            <Setter Property="Foreground" Value="{StaticResource LightForeground}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="Border" Background="{TemplateBinding Background}" 
+                        BorderThickness="0" CornerRadius="3">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ContentPresenter Grid.Column="1"
+                                          Margin="{TemplateBinding Padding}"
+                                          ContentSource="Header"
+                                          RecognizesAccessKey="True"/>
+
+                                <Path x:Name="Arrow" Grid.Column="2"
+                              Margin="10,0,0,0"
+                              VerticalAlignment="Center"
+                              Data="M 0 0 L 4 4 L 0 8 Z"
+                              Fill="{StaticResource LightForeground}"
+                              Visibility="Collapsed"/>
+
+                                <Popup x:Name="SubMenuPopup"
+                               Placement="Right"
+                               IsOpen="{Binding Path=IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                               AllowsTransparency="True"
+                               Focusable="False">
+                                    <Border Background="{StaticResource SecondaryDarkBackground}"
+                                    BorderBrush="{StaticResource ControlBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="2">
+                                        <StackPanel IsItemsHost="True"
+                                            KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Role" Value="SubmenuHeader">
+                                <Setter TargetName="Arrow" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="Role" Value="TopLevelHeader">
+                                <Setter TargetName="Arrow" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource AccentPurple}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{StaticResource GrayText}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </Window.Resources>
+
+    <Grid>
+        <TabControl SelectionChanged="TabControl_SelectionChanged">
+            
+            <TabItem Header="Dashboard">
+                <Grid Margin="10" Background="{StaticResource PrimaryDarkBackground}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Padding="10" Background="{StaticResource SecondaryDarkBackground}" CornerRadius="5" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Connected Clients: " FontWeight="Bold"/>
+                            <TextBlock x:Name="txtClientCount" Text="0" Margin="5,0,20,0" Foreground="{StaticResource AccentPurple}" FontWeight="Bold"/>
+
+                            <TextBlock Text=" | " Foreground="{StaticResource GrayText}"/>
+
+                            <TextBlock Text="Listening on port: " FontWeight="Bold" Margin="20,0,0,0"/>
+                            <TextBlock x:Name="txtListeningPort" Text="5900" Margin="5,0" Foreground="{StaticResource AccentPurple}" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
+
+                    <DataGrid Grid.Row="1" x:Name="ClientsGrid"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserResizeRows="False"
+                              CanUserAddRows="False"
+                              SelectionMode="Single"
+                              Style="{StaticResource {x:Type DataGrid}}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Computer Name" Binding="{Binding ComputerName}" Width="130"/>
+                            <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="120"/>
+                            <DataGridTextColumn Header="IP Address" Binding="{Binding IPAddress}" Width="1.2*"/>
+                            <DataGridTextColumn Header="Public Address" Binding="{Binding PublicIP}" Width="1.2*"/>
+                            <DataGridTextColumn Header="OS Version" Binding="{Binding OSVersion}" Width="2*"/>
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*"/>
+                            <DataGridTextColumn Header="Last Seen" Binding="{Binding LastSeenFormatted}" Width="1.2*"/>
+                        </DataGrid.Columns>
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Remote Desktop" Click="RemoteDesktop_Click"/>
+                                <MenuItem Header="Remote Shell" Click="RemoteShell_Click"/>
+                                <MenuItem Header="Task Manager" Click="TaskManager_Click"/>
+                                <MenuItem Header="File Manager" Click="FileManager_Click"/>
+                                <Separator/>
+                                <MenuItem Header="Power Options">
+                                    <MenuItem Header="Restart" Click="PowerRestart_Click"/>
+                                    <MenuItem Header="Shutdown" Click="PowerShutdown_Click"/>
+                                    <MenuItem Header="Sleep" Click="PowerSleep_Click"/>
+                                    <MenuItem Header="Log Off" Click="PowerLogOff_Click"/>
+                                </MenuItem>
+                                <Separator/>
+                                <MenuItem Header="Disconnect" Click="Disconnect_Click"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+            
+            <TabItem Header="Settings">
+                <Grid Margin="30" Background="{StaticResource PrimaryDarkBackground}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0">
+                        <TextBlock Text="Server Configuration" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" Foreground="{StaticResource AccentPurple}"/>
+
+                        <StackPanel Margin="0,0,0,25">
+                            <TextBlock Text="Listen Port:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                            <TextBox x:Name="txtServerPort" Text="5900" Width="200" HorizontalAlignment="Left"/>
+                            <TextBlock Text="Port the server listens on for incoming client connections"
+                                       Foreground="{StaticResource GrayText}" FontSize="11" Margin="0,5,0,0"/>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,0,30">
+                            <Button x:Name="btnRestartServer" Content="Restart Server with New Port"
+                                    Width="250" HorizontalAlignment="Left" Click="RestartServer_Click"/>
+                            <TextBlock x:Name="txtServerStatus" Text="Server is running"
+                                       Foreground="{StaticResource SuccessGreen}" Margin="0,10,0,0" FontWeight="SemiBold"/>
+                        </StackPanel>
+
+                        <Separator Style="{StaticResource {x:Type Separator}}" Background="{StaticResource ControlBorder}" Margin="0,0,0,30"/>
+
+                        <TextBlock Text="Client Generator" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" Foreground="{StaticResource AccentPurple}"/>
+
+                        <StackPanel>
+                            <Button x:Name="btnGenerateClient"
+                                    Content="Generate Client Package"
+                                    Width="250" HorizontalAlignment="Left" Click="GenerateClient_Click"/>
+
+                            <TextBlock x:Name="txtGenerateStatus"
+                                       Margin="0,10,0,0" Foreground="{StaticResource SuccessGreen}" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>
