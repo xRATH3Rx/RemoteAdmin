@@ -18,8 +18,8 @@
     </PackageReference>
     <PackageReference Include="Mono.Cecil" Version="0.11.6" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="System.Management" Version="9.0.9" />
-    <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.9" />
+    <PackageReference Include="System.Management" Version="9.0.10" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.10" />
     <PackageReference Include="Vestris.ResourceLib" Version="2.2.0" />
   </ItemGroup>
 
