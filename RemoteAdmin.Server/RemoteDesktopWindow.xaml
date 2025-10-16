@@ -11,6 +11,8 @@
         <SolidColorBrush x:Key="SecondaryDarkBackground" Color="#2D2D30"/>
         <SolidColorBrush x:Key="AccentPurple" Color="#A54ED5"/>
         <SolidColorBrush x:Key="LightForeground" Color="#F0F0F0"/>
+        <SolidColorBrush x:Key="DangerRed" Color="#E74C3C"/>
+        <SolidColorBrush x:Key="SuccessGreen" Color="#2ECC71"/>
     </Window.Resources>
 
     <Grid>
@@ -40,63 +42,166 @@
                                Margin="20,0,0,0"
                                VerticalAlignment="Center"
                                Foreground="#AAAAAA"/>
+
+                    <Border Background="#2C3E50" 
+                            CornerRadius="3" 
+                            Padding="8,4" 
+                            Margin="15,0,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse x:Name="statusIndicator" 
+                                     Width="10" 
+                                     Height="10" 
+                                     Fill="{StaticResource DangerRed}"
+                                     Margin="0,0,8,0"/>
+                            <TextBlock x:Name="txtStatus" 
+                                       Text="Disconnected" 
+                                       FontSize="11"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <TextBlock Text="Quality:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock Text="Quality:" 
+                               VerticalAlignment="Center" 
+                               Margin="0,0,10,0"/>
                     <ComboBox x:Name="cboQuality" 
                               Width="100" 
-                              SelectedIndex="1"
-                              SelectionChanged="cboQuality_SelectionChanged">
-                        <ComboBoxItem Content="Low (50%)"/>
-                        <ComboBoxItem Content="Medium (75%)"/>
-                        <ComboBoxItem Content="High (90%)"/>
+                              VerticalAlignment="Center"
+                              SelectionChanged="cboQuality_SelectionChanged"
+                              Background="{StaticResource PrimaryDarkBackground}"
+                              Foreground="{StaticResource LightForeground}">
+                        <ComboBoxItem Content="Low (50%)" IsSelected="False"/>
+                        <ComboBoxItem Content="Medium (75%)" IsSelected="True"/>
+                        <ComboBoxItem Content="High (90%)" IsSelected="False"/>
                     </ComboBox>
 
                     <Button x:Name="btnFullscreen" 
                             Content="Fullscreen" 
                             Width="100" 
+                            Height="30"
                             Margin="10,0,0,0"
+                            Background="{StaticResource AccentPurple}"
+                            Foreground="White"
+                            BorderThickness="0"
                             Click="btnFullscreen_Click"/>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Desktop View -->
-        <Border Grid.Row="1" 
-                Background="#000000"
-                BorderBrush="{StaticResource SecondaryDarkBackground}"
-                BorderThickness="1">
-            <ScrollViewer x:Name="DesktopScroller" 
-                          HorizontalScrollBarVisibility="Auto"
-                          VerticalScrollBarVisibility="Auto">
+        <!-- Desktop Display -->
+        <Border Grid.Row="1" Background="Black" BorderBrush="#555555" BorderThickness="1">
+            <Viewbox Stretch="Uniform">
                 <Image x:Name="imgDesktop" 
-                       Stretch="None"
+                       Stretch="Uniform"
                        MouseDown="imgDesktop_MouseDown"
                        MouseUp="imgDesktop_MouseUp"
                        MouseMove="imgDesktop_MouseMove"
-                       MouseWheel="imgDesktop_MouseWheel"/>
-            </ScrollViewer>
+                       MouseWheel="imgDesktop_MouseWheel"
+                       KeyDown="imgDesktop_KeyDown"
+                       KeyUp="imgDesktop_KeyUp"
+                       Focusable="True"/>
+            </Viewbox>
         </Border>
 
-        <!-- Status Bar -->
-        <Border Grid.Row="2" Background="{StaticResource SecondaryDarkBackground}" Padding="10,5">
+        <!-- Control Panel -->
+        <Border Grid.Row="2" Background="{StaticResource SecondaryDarkBackground}" Padding="15">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock x:Name="txtStatus" 
-                           Text="Status: Connecting..." 
-                           Foreground="#AAAAAA"
-                           VerticalAlignment="Center"/>
+                <!-- Left Side - Control Toggles -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <!-- Mouse Control Toggle -->
+                    <Border Background="{StaticResource PrimaryDarkBackground}" 
+                            CornerRadius="5" 
+                            Padding="15,10"
+                            Margin="0,0,15,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🖱️" 
+                                       FontSize="20" 
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,0"/>
+                            <StackPanel>
+                                <TextBlock Text="Mouse Control" 
+                                           FontWeight="Bold" 
+                                           FontSize="12"/>
+                                <TextBlock x:Name="txtMouseStatus" 
+                                           Text="Disabled" 
+                                           FontSize="10" 
+                                           Foreground="#AAAAAA"/>
+                            </StackPanel>
+                            <Button x:Name="btnToggleMouse" 
+                                    Content="Enable" 
+                                    Width="80" 
+                                    Height="28"
+                                    Margin="15,0,0,0"
+                                    Background="{StaticResource SuccessGreen}"
+                                    Foreground="White"
+                                    BorderThickness="0"
+                                    Click="btnToggleMouse_Click"
+                                    FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
 
-                <TextBlock x:Name="txtFPS" 
-                           Grid.Column="1"
-                           Text="FPS: 0" 
-                           Foreground="#AAAAAA"
-                           VerticalAlignment="Center"/>
+                    <!-- Keyboard Control Toggle -->
+                    <Border Background="{StaticResource PrimaryDarkBackground}" 
+                            CornerRadius="5" 
+                            Padding="15,10">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⌨️" 
+                                       FontSize="20" 
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,0"/>
+                            <StackPanel>
+                                <TextBlock Text="Keyboard Control" 
+                                           FontWeight="Bold" 
+                                           FontSize="12"/>
+                                <TextBlock x:Name="txtKeyboardStatus" 
+                                           Text="Disabled" 
+                                           FontSize="10" 
+                                           Foreground="#AAAAAA"/>
+                            </StackPanel>
+                            <Button x:Name="btnToggleKeyboard" 
+                                    Content="Enable" 
+                                    Width="80" 
+                                    Height="28"
+                                    Margin="15,0,0,0"
+                                    Background="{StaticResource SuccessGreen}"
+                                    Foreground="White"
+                                    BorderThickness="0"
+                                    Click="btnToggleKeyboard_Click"
+                                    FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Right Side - Action Buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="btnStart" 
+                            Content="▶ Start" 
+                            Width="100" 
+                            Height="35"
+                            Background="{StaticResource SuccessGreen}"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Click="btnStart_Click"
+                            FontWeight="Bold"
+                            Margin="0,0,10,0"/>
+
+                    <Button x:Name="btnStop" 
+                            Content="⏹ Stop" 
+                            Width="100" 
+                            Height="35"
+                            Background="{StaticResource DangerRed}"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Click="btnStop_Click"
+                            FontWeight="Bold"
+                            IsEnabled="False"/>
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>

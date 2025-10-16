@@ -11,6 +11,7 @@ namespace RemoteAdmin.Server.Build
     /// </summary>
     public class ClientObfuscator
     {
+        
         private readonly AssemblyDefinition _assembly;
         private readonly Random _random;
         private readonly HashSet<string> _usedNames;

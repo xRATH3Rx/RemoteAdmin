@@ -1,8 +1,9 @@
 ﻿using System;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.IO;
 using RemoteAdmin.Shared;
 
 namespace RemoteAdmin.Server
@@ -10,29 +11,28 @@ namespace RemoteAdmin.Server
     public partial class RemoteDesktopWindow : Window
     {
         private ConnectedClient client;
-        private DateTime lastFrameTime = DateTime.Now;
-        private int frameCount = 0;
-        private bool isMouseCaptured = false;
+        private bool isStreaming = false;
+        private bool mouseControlEnabled = false;
+        private bool keyboardControlEnabled = false;
 
-        public RemoteDesktopWindow(ConnectedClient client)
+        public RemoteDesktopWindow(ConnectedClient connectedClient)
         {
             InitializeComponent();
-            this.client = client;
+            client = connectedClient;
+            txtClientInfo.Text = $"Remote Desktop - {client.ComputerName} ({client.Username})";
 
-            txtClientInfo.Text = $"Remote Desktop: {client.ComputerName} ({client.Username})";
+            // Focus the image so it can receive keyboard events
+            imgDesktop.Focus();
+        }
 
-            // Start remote desktop streaming
+        private async void btnStart_Click(object sender, RoutedEventArgs e)
+        {
             StartRemoteDesktop();
+        }
 
-            // Update FPS counter every second
-            var fpsTimer = new System.Windows.Threading.DispatcherTimer();
-            fpsTimer.Interval = TimeSpan.FromSeconds(1);
-            fpsTimer.Tick += (s, e) =>
-            {
-                txtFPS.Text = $"FPS: {frameCount}";
-                frameCount = 0;
-            };
-            fpsTimer.Start();
+        private async void btnStop_Click(object sender, RoutedEventArgs e)
+        {
+            StopRemoteDesktop();
         }
 
         private async void StartRemoteDesktop()
@@ -40,19 +40,20 @@ namespace RemoteAdmin.Server
             try
             {
                 int quality = GetQualityValue();
-
-                var message = new StartRemoteDesktopMessage
-                {
-                    Quality = quality,
-                    ScreenIndex = 0
-                };
-
+                var message = new StartRemoteDesktopMessage { Quality = quality };
                 await NetworkHelper.SendMessageAsync(client.Stream, message);
-                UpdateStatus("Streaming...", false);
+
+                isStreaming = true;
+                btnStart.IsEnabled = false;
+                btnStop.IsEnabled = true;
+                cboQuality.IsEnabled = false;
+
+                UpdateStatus("Connected", true);
             }
             catch (Exception ex)
             {
-                UpdateStatus($"Error: {ex.Message}", true);
+                MessageBox.Show($"Failed to start remote desktop: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -60,47 +61,64 @@ namespace RemoteAdmin.Server
         {
             try
             {
-                await NetworkHelper.SendMessageAsync(client.Stream, new StopRemoteDesktopMessage());
+                var message = new StopRemoteDesktopMessage();
+                await NetworkHelper.SendMessageAsync(client.Stream, message);
+
+                isStreaming = false;
+                btnStart.IsEnabled = true;
+                btnStop.IsEnabled = false;
+                cboQuality.IsEnabled = true;
+
+                // Disable controls when stopping
+                if (mouseControlEnabled)
+                {
+                    ToggleMouseControl();
+                }
+                if (keyboardControlEnabled)
+                {
+                    ToggleKeyboardControl();
+                }
+
+                UpdateStatus("Disconnected", false);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to stop remote desktop: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         public void UpdateScreen(byte[] imageData, int width, int height)
         {
-            Dispatcher.Invoke(() =>
+            try
             {
-                try
+                using (var ms = new MemoryStream(imageData))
                 {
-                    using (var ms = new MemoryStream(imageData))
-                    {
-                        var bitmap = new BitmapImage();
-                        bitmap.BeginInit();
-                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                        bitmap.StreamSource = ms;
-                        bitmap.EndInit();
-                        bitmap.Freeze();
+                    var bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.StreamSource = ms;
+                    bitmap.EndInit();
+                    bitmap.Freeze();
 
-                        imgDesktop.Source = bitmap;
-                    }
-
-                    txtResolution.Text = $"{width}x{height}";
-                    frameCount++;
+                    imgDesktop.Source = bitmap;
+                    txtResolution.Text = $"{width} x {height}";
                 }
-                catch (Exception ex)
-                {
-                    UpdateStatus($"Frame error: {ex.Message}", true);
-                }
-            });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating screen: {ex.Message}");
+            }
         }
 
-        public void UpdateStatus(string status, bool isError = false)
+        private void UpdateStatus(string status, bool isConnected)
         {
             Dispatcher.Invoke(() =>
             {
-                txtStatus.Text = $"Status: {status}";
-                txtStatus.Foreground = isError ?
-                    System.Windows.Media.Brushes.Red :
-                    System.Windows.Media.Brushes.LimeGreen;
+                txtStatus.Text = status;
+                statusIndicator.Fill = isConnected ?
+                    (SolidColorBrush)FindResource("SuccessGreen") :
+                    (SolidColorBrush)FindResource("DangerRed");
             });
         }
 
@@ -117,7 +135,7 @@ namespace RemoteAdmin.Server
 
         private void cboQuality_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            if (client != null)
+            if (isStreaming)
             {
                 StopRemoteDesktop();
                 System.Threading.Thread.Sleep(100);
@@ -141,9 +159,64 @@ namespace RemoteAdmin.Server
             }
         }
 
-        // Mouse Events
+        // Toggle Mouse Control
+        private void btnToggleMouse_Click(object sender, RoutedEventArgs e)
+        {
+            ToggleMouseControl();
+        }
+
+        private void ToggleMouseControl()
+        {
+            mouseControlEnabled = !mouseControlEnabled;
+
+            if (mouseControlEnabled)
+            {
+                btnToggleMouse.Content = "Disable";
+                btnToggleMouse.Background = (SolidColorBrush)FindResource("DangerRed");
+                txtMouseStatus.Text = "Enabled";
+                txtMouseStatus.Foreground = (SolidColorBrush)FindResource("SuccessGreen");
+            }
+            else
+            {
+                btnToggleMouse.Content = "Enable";
+                btnToggleMouse.Background = (SolidColorBrush)FindResource("SuccessGreen");
+                txtMouseStatus.Text = "Disabled";
+                txtMouseStatus.Foreground = new SolidColorBrush(Color.FromRgb(170, 170, 170));
+            }
+        }
+
+        // Toggle Keyboard Control
+        private void btnToggleKeyboard_Click(object sender, RoutedEventArgs e)
+        {
+            ToggleKeyboardControl();
+        }
+
+        private void ToggleKeyboardControl()
+        {
+            keyboardControlEnabled = !keyboardControlEnabled;
+
+            if (keyboardControlEnabled)
+            {
+                btnToggleKeyboard.Content = "Disable";
+                btnToggleKeyboard.Background = (SolidColorBrush)FindResource("DangerRed");
+                txtKeyboardStatus.Text = "Enabled";
+                txtKeyboardStatus.Foreground = (SolidColorBrush)FindResource("SuccessGreen");
+                imgDesktop.Focus(); // Ensure image has focus for keyboard events
+            }
+            else
+            {
+                btnToggleKeyboard.Content = "Enable";
+                btnToggleKeyboard.Background = (SolidColorBrush)FindResource("SuccessGreen");
+                txtKeyboardStatus.Text = "Disabled";
+                txtKeyboardStatus.Foreground = new SolidColorBrush(Color.FromRgb(170, 170, 170));
+            }
+        }
+
+        // Mouse Events - Only work when enabled
         private async void imgDesktop_MouseDown(object sender, MouseButtonEventArgs e)
         {
+            if (!mouseControlEnabled || !isStreaming) return;
+
             var pos = e.GetPosition(imgDesktop);
             string button = e.ChangedButton switch
             {
@@ -153,10 +226,14 @@ namespace RemoteAdmin.Server
                 _ => "Left"
             };
 
+            // Scale coordinates to actual screen resolution
+            int scaledX = (int)(pos.X * (imgDesktop.Source.Width / imgDesktop.ActualWidth));
+            int scaledY = (int)(pos.Y * (imgDesktop.Source.Height / imgDesktop.ActualHeight));
+
             var message = new MouseInputMessage
             {
-                X = (int)pos.X,
-                Y = (int)pos.Y,
+                X = scaledX,
+                Y = scaledY,
                 Button = button,
                 Action = "Down"
             };
@@ -166,6 +243,8 @@ namespace RemoteAdmin.Server
 
         private async void imgDesktop_MouseUp(object sender, MouseButtonEventArgs e)
         {
+            if (!mouseControlEnabled || !isStreaming) return;
+
             var pos = e.GetPosition(imgDesktop);
             string button = e.ChangedButton switch
             {
@@ -175,10 +254,13 @@ namespace RemoteAdmin.Server
                 _ => "Left"
             };
 
+            int scaledX = (int)(pos.X * (imgDesktop.Source.Width / imgDesktop.ActualWidth));
+            int scaledY = (int)(pos.Y * (imgDesktop.Source.Height / imgDesktop.ActualHeight));
+
             var message = new MouseInputMessage
             {
-                X = (int)pos.X,
-                Y = (int)pos.Y,
+                X = scaledX,
+                Y = scaledY,
                 Button = button,
                 Action = "Up"
             };
@@ -188,12 +270,17 @@ namespace RemoteAdmin.Server
 
         private async void imgDesktop_MouseMove(object sender, MouseEventArgs e)
         {
+            if (!mouseControlEnabled || !isStreaming) return;
+
             var pos = e.GetPosition(imgDesktop);
+
+            int scaledX = (int)(pos.X * (imgDesktop.Source.Width / imgDesktop.ActualWidth));
+            int scaledY = (int)(pos.Y * (imgDesktop.Source.Height / imgDesktop.ActualHeight));
 
             var message = new MouseInputMessage
             {
-                X = (int)pos.X,
-                Y = (int)pos.Y,
+                X = scaledX,
+                Y = scaledY,
                 Action = "Move"
             };
 
@@ -202,22 +289,21 @@ namespace RemoteAdmin.Server
 
         private async void imgDesktop_MouseWheel(object sender, MouseWheelEventArgs e)
         {
-            var pos = e.GetPosition(imgDesktop);
+            if (!mouseControlEnabled || !isStreaming) return;
 
             var message = new MouseInputMessage
             {
-                X = (int)pos.X,
-                Y = (int)pos.Y,
-                Action = "Wheel",
-                Delta = e.Delta
+                Delta = e.Delta,
+                Action = "Wheel"
             };
 
             await NetworkHelper.SendMessageAsync(client.Stream, message);
         }
 
-        protected override async void OnKeyDown(KeyEventArgs e)
+        // Keyboard Events - Only work when enabled
+        private async void imgDesktop_KeyDown(object sender, KeyEventArgs e)
         {
-            base.OnKeyDown(e);
+            if (!keyboardControlEnabled || !isStreaming) return;
 
             var message = new KeyboardInputMessage
             {
@@ -229,11 +315,12 @@ namespace RemoteAdmin.Server
             };
 
             await NetworkHelper.SendMessageAsync(client.Stream, message);
+            e.Handled = true;
         }
 
-        protected override async void OnKeyUp(KeyEventArgs e)
+        private async void imgDesktop_KeyUp(object sender, KeyEventArgs e)
         {
-            base.OnKeyUp(e);
+            if (!keyboardControlEnabled || !isStreaming) return;
 
             var message = new KeyboardInputMessage
             {
@@ -245,11 +332,15 @@ namespace RemoteAdmin.Server
             };
 
             await NetworkHelper.SendMessageAsync(client.Stream, message);
+            e.Handled = true;
         }
 
         private void Window_Closed(object sender, EventArgs e)
         {
-            StopRemoteDesktop();
+            if (isStreaming)
+            {
+                StopRemoteDesktop();
+            }
             client.RemoteDesktopWindow = null;
         }
     }
