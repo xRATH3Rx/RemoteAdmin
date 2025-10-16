@@ -1,34 +1,46 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-	<!-- Merge ONLY managed libs into the main DLL (net8 uses a native exe host) -->
-	<Target Name="ILRepacker" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
-		<Message Text="=== ILRepack (custom, merging DLL) ===" Importance="High" />
+	<Target Name="ILRepackMergeExe"
+			AfterTargets="Publish"
+			Condition="'$(Configuration)'=='Release' and '$(SelfContained)'=='false' and '$(PublishSingleFile)'!='true'">
+
+		<PropertyGroup>
+			<OutDir>$(PublishDir)</OutDir>
+			<ExePath>$(OutDir)$(AssemblyName).exe</ExePath>
+			<DllPath>$(OutDir)$(AssemblyName).dll</DllPath>
+		</PropertyGroup>
 
 		<ItemGroup>
-			<!-- Primary managed assembly -->
-			<InputAssemblies Include="$(TargetDir)$(AssemblyName).dll" />
-			<!-- Your managed dependencies -->
-			<InputAssemblies Include="$(TargetDir)RemoteAdmin.Shared.dll" Condition="Exists('$(TargetDir)RemoteAdmin.Shared.dll')" />
-			<InputAssemblies Include="$(TargetDir)Newtonsoft.Json.dll" Condition="Exists('$(TargetDir)Newtonsoft.Json.dll')" />
-			<!-- Avoid framework packs (most System.*). Only include a System.* if an actual DLL sits in TargetDir -->
+			<RepackInputs Include="$(ExePath)" />
+
+			<RepackInputs Include="$(DllPath)" Condition="Exists('$(DllPath)')" />
+			<RepackInputs Include="$(OutDir)RemoteAdmin.Shared.dll" Condition="Exists('$(OutDir)RemoteAdmin.Shared.dll')" />
+			<RepackInputs Include="$(OutDir)Newtonsoft.Json.dll" Condition="Exists('$(OutDir)Newtonsoft.Json.dll')" />
+
 		</ItemGroup>
 
 		<ILRepack
 		  Parallel="true"
 		  Internalize="true"
-		  InputAssemblies="@(InputAssemblies)"
-		  TargetKind="SameAsPrimaryAssembly"
-		  OutputFile="$(TargetDir)$(AssemblyName).dll" />
+		  InputAssemblies="@(RepackInputs)"
+		  TargetKind="Exe"
+		  Libs="$(OutDir)"
+		  OutputFile="$(ExePath)" />
+		<Message Text="ILRepack merged into: $(ExePath)" Importance="High" />
 	</Target>
 
-	<!-- Copy the merged DLL as client.bin (template for your builder) -->
-	<Target Name="CopyClientBinWin" AfterTargets="ILRepacker" Condition="'$(OS)' == 'Windows_NT'">
-		<Message Text="Copying $(TargetDir)$(AssemblyName).dll → $(TargetDir)client.bin" Importance="High" />
-		<Exec Command='copy "$(TargetDir)$(AssemblyName).dll" "$(TargetDir)client.bin" /Y' />
+
+	<!-- Copy merged exe into client.bin -->
+	<Target Name="CopyWindowsMerged"
+			AfterTargets="ILRepackMergeExe"
+			Condition="'$(OS)' == 'Windows_NT'">
+		<Exec Command='copy "$(ExePath)" "$(OutDir)client.bin" /Y' />
 	</Target>
 
-	<Target Name="CopyClientBinUnix" AfterTargets="ILRepacker" Condition="'$(OS)' != 'Windows_NT'">
-		<Exec Command='cp "$(TargetDir)$(AssemblyName).dll" "$(TargetDir)client.bin"' />
+	<Target Name="CopyUnixMerged"
+			AfterTargets="ILRepackMergeExe"
+			Condition="'$(OS)' != 'Windows_NT'">
+		<Exec Command='cp "$(ExePath)" "$(OutDir)client.bin"' />
 	</Target>
+
 </Project>

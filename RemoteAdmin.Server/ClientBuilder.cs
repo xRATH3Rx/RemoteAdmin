@@ -1,174 +1,125 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
+using System.Text;
 
 namespace RemoteAdmin.Server.Build
 {
-    /// <summary>
-    /// Client builder that modifies a single self-contained EXE.
-    /// All DLLs are embedded as resources in the EXE.
-    /// </summary>
     public class ClientBuilder
     {
         private readonly BuildOptions _options;
-        private readonly string _clientExePath;
+        private readonly string _templatePath;
 
-        public ClientBuilder(BuildOptions options, string clientExePath)
+        // Must match ClientConfig placeholders EXACTLY
+        private const string IP_PLACEHOLDER = "###PLACEHOLDER_IP_ADDR_X9K2P7L4M###";
+        private const int PORT_PLACEHOLDER = 999999999;
+        private const int INTERVAL_PLACEHOLDER = 888888888;
+
+        public ClientBuilder(BuildOptions options, string templatePath)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
-            _clientExePath = clientExePath ?? throw new ArgumentNullException(nameof(clientExePath));
+            _templatePath = templatePath ?? throw new ArgumentNullException(nameof(templatePath));
         }
 
         public void Build()
         {
-            using (var asm = AssemblyDefinition.ReadAssembly(_clientExePath))
-            {
-                WriteSettings(asm); // this already edits ClientConfig::.cctor
-                if (_options.Obfuscate)
-                {
-                    var renamer = new Renamer(asm);
-                    renamer.Perform();
-                }
-                asm.Write(_options.OutputPath);
-            }
-        }
 
-        private void WriteSettings(AssemblyDefinition assembly)
-        {
-            var configType = assembly.MainModule.Types
-                .FirstOrDefault(t => t.Name == "ClientConfig");
-
-            if (configType == null)
+            if (!File.Exists(_templatePath))
             {
-                throw new Exception("ClientConfig class not found!");
+                throw new FileNotFoundException($"Template file not found: {_templatePath}");
             }
 
-            Console.WriteLine($"  Found: {configType.FullName}");
-
-            var cctor = configType.Methods.FirstOrDefault(m => m.Name == ".cctor");
-            if (cctor == null)
-            {
-                throw new Exception("Static constructor not found in ClientConfig!");
-            }
-
-            Console.WriteLine("  Found static constructor");
-
-            int stringCount = 1;
-            int intCount = 1;
-
-            for (int i = 0; i < cctor.Body.Instructions.Count; i++)
-            {
-                var instruction = cctor.Body.Instructions[i];
-
-                if (instruction.OpCode == OpCodes.Ldstr)
-                {
-                    if (stringCount == 1) // ServerIP
-                    {
-                        instruction.Operand = _options.ServerIP;
-                        Console.WriteLine($"  → ServerIP = \"{_options.ServerIP}\"");
-                    }
-                    stringCount++;
-                }
-                else if (instruction.OpCode == OpCodes.Ldc_I4)
-                {
-                    if (intCount == 1) // ServerPort
-                    {
-                        instruction.Operand = _options.ServerPort;
-                        Console.WriteLine($"  → ServerPort = {_options.ServerPort}");
-                    }
-                    else if (intCount == 2) // ReconnectInterval
-                    {
-                        instruction.Operand = _options.ReconnectDelay;
-                        Console.WriteLine($"  → ReconnectDelay = {_options.ReconnectDelay}s");
-                    }
-                    intCount++;
-                }
-            }
-
-            Console.WriteLine("  ✓ Settings injected");
-        }
-    }
-
-    // Keep the Renamer class from your existing code
-    public class Renamer
-    {
-        public AssemblyDefinition Assembly { get; set; }
-        private int Length { get; set; }
-
-        public Renamer(AssemblyDefinition assembly, int length = 20)
-        {
-            Assembly = assembly;
-            Length = length;
-        }
-
-        public bool Perform()
-        {
             try
             {
-                foreach (var module in Assembly.Modules)
+                byte[] fileBytes = File.ReadAllBytes(_templatePath);
+
+                if (!InjectString(ref fileBytes, IP_PLACEHOLDER, _options.ServerIP))
                 {
-                    foreach (var typeDef in module.Types)
-                    {
-                        RenameInType(typeDef);
-                    }
+                    throw new Exception("Failed to inject ServerIP - placeholder not found!");
                 }
-                return true;
+
+                // Inject Port
+                if (!InjectInt32(ref fileBytes, PORT_PLACEHOLDER, _options.ServerPort))
+                {
+                    throw new Exception("Failed to inject ServerPort - placeholder not found!");
+                }
+
+                if (!InjectInt32(ref fileBytes, INTERVAL_PLACEHOLDER, _options.ReconnectDelay))
+                {
+                    throw new Exception("Failed to inject ReconnectDelay - placeholder not found!");
+                }
+
+                // Write output
+                File.WriteAllBytes(_options.OutputPath, fileBytes);
             }
-            catch
+            catch (Exception ex)
+            {
+                Console.WriteLine($"\nERROR: {ex.Message}");
+                throw;
+            }
+        }
+
+        private bool InjectString(ref byte[] data, string placeholder, string value)
+        {
+            byte[] placeholderBytes = Encoding.Unicode.GetBytes(placeholder);
+            byte[] valueBytes = Encoding.Unicode.GetBytes(value);
+
+            int index = FindPattern(data, placeholderBytes);
+            if (index == -1)
             {
                 return false;
             }
+
+            if (valueBytes.Length > placeholderBytes.Length)
+            {
+                throw new Exception($"Value '{value}' is too long! Max length: {placeholderBytes.Length / 2} chars");
+            }
+
+            Array.Copy(valueBytes, 0, data, index, valueBytes.Length);
+
+            for (int i = valueBytes.Length; i < placeholderBytes.Length; i++)
+            {
+                data[index + i] = 0;
+            }
+
+            return true;
         }
 
-        private void RenameInType(TypeDefinition typeDef)
+        private bool InjectInt32(ref byte[] data, int placeholder, int value)
         {
-            if (typeDef.Namespace.Contains("Shared") || typeDef.IsEnum || typeDef.HasInterfaces)
-                return;
+            byte[] placeholderBytes = BitConverter.GetBytes(placeholder);
+            byte[] valueBytes = BitConverter.GetBytes(value);
 
-            typeDef.Name = GenerateRandomName();
-            typeDef.Namespace = string.Empty;
-
-            if (typeDef.HasMethods)
+            int index = FindPattern(data, placeholderBytes);
+            if (index == -1)
             {
-                foreach (var methodDef in typeDef.Methods)
-                {
-                    if (!methodDef.IsConstructor && !methodDef.HasCustomAttributes &&
-                        !methodDef.IsAbstract && !methodDef.IsVirtual)
-                    {
-                        methodDef.Name = GenerateRandomName();
-                    }
-                }
+                return false;
             }
-
-            if (typeDef.HasFields)
-            {
-                foreach (var fieldDef in typeDef.Fields)
-                {
-                    if (!fieldDef.IsSpecialName)
-                    {
-                        fieldDef.Name = GenerateRandomName();
-                    }
-                }
-            }
-
-            if (typeDef.HasNestedTypes)
-            {
-                foreach (var nestedType in typeDef.NestedTypes)
-                {
-                    RenameInType(nestedType);
-                }
-            }
+            Array.Copy(valueBytes, 0, data, index, valueBytes.Length);
+            return true;
         }
 
-        private string GenerateRandomName()
+        private int FindPattern(byte[] data, byte[] pattern)
         {
-            const string chars = "abcdefghijklmnopqrstuvwxyz";
-            var random = new Random();
-            return new string(Enumerable.Range(0, Length)
-                .Select(_ => chars[random.Next(chars.Length)])
-                .ToArray());
+            int patternLength = pattern.Length;
+            int dataLength = data.Length - patternLength;
+
+            for (int i = 0; i <= dataLength; i++)
+            {
+                bool found = true;
+                for (int j = 0; j < patternLength; j++)
+                {
+                    if (data[i + j] != pattern[j])
+                    {
+                        found = false;
+                        break;
+                    }
+                }
+                if (found)
+                {
+                    return i;
+                }
+            }
+            return -1;
         }
     }
 }
