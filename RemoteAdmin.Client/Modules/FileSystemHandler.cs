@@ -12,7 +12,7 @@ namespace RemoteAdmin.Client.Modules
     internal class FileSystemHandler
     {
         public static Dictionary<string, string> activeUploads = new Dictionary<string, string>();
-        public static async Task HandleDirectoryListRequest(NetworkStream stream, DirectoryListRequestMessage request)
+        public static async Task HandleDirectoryListRequest(Stream stream, DirectoryListRequestMessage request)
         {
             try
             {
@@ -77,7 +77,7 @@ namespace RemoteAdmin.Client.Modules
             }
         }
 
-        public static async Task HandleDownloadRequest(NetworkStream stream, DownloadFileRequestMessage request)
+        public static async Task HandleDownloadRequest(Stream stream, DownloadFileRequestMessage request)
         {
             try
             {
@@ -111,7 +111,7 @@ namespace RemoteAdmin.Client.Modules
             }
         }
 
-        public static async Task HandleFileChunk(NetworkStream stream, FileChunkMessage chunk)
+        public static async Task HandleFileChunk(Stream stream, FileChunkMessage chunk)
         {
             try
             {
@@ -153,7 +153,7 @@ namespace RemoteAdmin.Client.Modules
             }
         }
 
-        public static async Task HandleDeleteFile(NetworkStream stream, DeleteFileMessage deleteMsg)
+        public static async Task HandleDeleteFile(Stream stream, DeleteFileMessage deleteMsg)
         {
             try
             {
@@ -186,7 +186,7 @@ namespace RemoteAdmin.Client.Modules
             }
         }
 
-        public static async Task HandleRenameFile(NetworkStream stream, RenameFileMessage renameMsg)
+        public static async Task HandleRenameFile(Stream stream, RenameFileMessage renameMsg)
         {
             try
             {
@@ -222,7 +222,7 @@ namespace RemoteAdmin.Client.Modules
             }
         }
 
-        public static async Task HandleCreateDirectory(NetworkStream stream, CreateDirectoryMessage createMsg)
+        public static async Task HandleCreateDirectory(Stream stream, CreateDirectoryMessage createMsg)
         {
             try
             {

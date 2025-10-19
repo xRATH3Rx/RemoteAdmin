@@ -318,7 +318,7 @@ namespace RemoteAdmin.Server
 
         private async void Delete_Click(object sender, RoutedEventArgs e)
         {
-            FileSystemItemViewModel selectedItem = null;
+            FileSystemItemViewModel? selectedItem = null;
 
             if (lstFolders.SelectedItem is FileSystemItemViewModel folder)
                 selectedItem = folder;
@@ -364,7 +364,7 @@ namespace RemoteAdmin.Server
 
         private async void Rename_Click(object sender, RoutedEventArgs e)
         {
-            FileSystemItemViewModel selectedItem = null;
+            FileSystemItemViewModel? selectedItem = null;
 
             if (lstFolders.SelectedItem is FileSystemItemViewModel folder)
                 selectedItem = folder;

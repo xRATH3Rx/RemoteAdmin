@@ -30,6 +30,11 @@ namespace RemoteAdmin.Server
         private string assemblyCompany = "Company Name";
         private string iconPath = "";
 
+        // BuilderWindow fields
+        private string clientPfxPassword = "";
+        private TextBox txtClientPfxPassword;
+
+
         // Current UI references
         private TextBox txtServerIP, txtServerPort, txtReconnectDelay;
         private CheckBox chkObfuscate;
@@ -94,6 +99,7 @@ namespace RemoteAdmin.Server
             if (txtAssemblyTitle != null) assemblyTitle = txtAssemblyTitle.Text;
             if (txtAssemblyCompany != null) assemblyCompany = txtAssemblyCompany.Text;
             if (txtIconPath != null) iconPath = txtIconPath.Text;
+            if (txtClientPfxPassword != null) clientPfxPassword = txtClientPfxPassword.Text ?? "";
         }
 
         private void LoadBasicSettings()
@@ -156,6 +162,14 @@ namespace RemoteAdmin.Server
                 Margin = new Thickness(0, 10, 0, 0)
             };
             panel.Children.Add(chkObfuscate);
+
+            panel.Children.Add(CreateSpacer(20));
+            panel.Children.Add(CreateHeader("Certificate Options"));
+
+            panel.Children.Add(CreateLabel("Client PFX Password:"));
+            txtClientPfxPassword = CreateTextBox(clientPfxPassword); // or use a PasswordBox if preferred
+            panel.Children.Add(txtClientPfxPassword);
+            panel.Children.Add(CreateHint("Password used to open client.pfx (leave blank if none)"));
 
             panel.Children.Add(CreateHint("Obfuscation renames classes/methods to make reverse engineering harder"));
 
@@ -556,7 +570,8 @@ namespace RemoteAdmin.Server
                     AssemblyCompany = assemblyCompany,
                     IconPath = iconPath,
 
-                    OutputPath = saveDialog.FileName
+                    OutputPath = saveDialog.FileName,
+                    ClientPfxPassword = clientPfxPassword
                 };
 
                 // Show progress window

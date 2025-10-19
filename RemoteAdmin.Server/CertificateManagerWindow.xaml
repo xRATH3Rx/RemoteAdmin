@@ -1,0 +1,454 @@
+﻿<Window x:Class="RemoteAdmin.Server.CertificateManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Certificate Manager" Height="900" Width="800"
+        WindowStartupLocation="CenterScreen"
+        Background="#1E1E1E"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="DarkBackground" Color="#1E1E1E"/>
+        <SolidColorBrush x:Key="SidebarBackground" Color="#2D2D30"/>
+        <SolidColorBrush x:Key="ControlBackground" Color="#333337"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#555555"/>
+        <SolidColorBrush x:Key="AccentPurple" Color="#A54ED5"/>
+        <SolidColorBrush x:Key="SuccessGreen" Color="#2ECC71"/>
+        <SolidColorBrush x:Key="WarningOrange" Color="#E67E22"/>
+        <SolidColorBrush x:Key="DangerRed" Color="#E74C3C"/>
+        <SolidColorBrush x:Key="TextColor" Color="#F0F0F0"/>
+        <SolidColorBrush x:Key="GrayText" Color="#AAAAAA"/>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{StaticResource ControlBackground}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{StaticResource SidebarBackground}" Padding="20">
+            <Grid>
+                <StackPanel>
+                    <TextBlock Text="🔒 Certificate Manager" 
+                               FontSize="20" 
+                               FontWeight="Bold"/>
+                    <TextBlock Text="Generate and manage mTLS certificates for secure communication" 
+                               FontSize="12" 
+                               Foreground="{StaticResource GrayText}"
+                               Margin="0,5,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="20">
+
+                <!-- Certificate Status Section -->
+                <Border Background="{StaticResource ControlBackground}" 
+                        BorderBrush="{StaticResource BorderBrush}" 
+                        BorderThickness="1" 
+                        CornerRadius="5" 
+                        Padding="20"
+                        Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock Text="Certificate Status" 
+                                   FontSize="16" 
+                                   FontWeight="Bold" 
+                                   Margin="0,0,0,15"/>
+
+                        <!-- CA Certificate -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="CA Certificate:" 
+                                       Grid.Column="0" 
+                                       VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Ellipse x:Name="indicatorCA" 
+                                         Width="12" 
+                                         Height="12" 
+                                         Fill="{StaticResource DangerRed}" 
+                                         Margin="0,0,10,0"/>
+                                <TextBlock x:Name="txtCAStatus" 
+                                           Text="Not Found" 
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Button x:Name="btnViewCA" 
+                                    Content="View Details" 
+                                    Grid.Column="2"
+                                    Width="100"
+                                    Height="28"
+                                    Background="{StaticResource AccentPurple}"
+                                    Foreground="White"
+                                    BorderThickness="0"
+                                    Click="btnViewCA_Click"
+                                    IsEnabled="False"/>
+                        </Grid>
+
+                        <!-- Server Certificate -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Server Certificate:" 
+                                       Grid.Column="0" 
+                                       VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Ellipse x:Name="indicatorServer" 
+                                         Width="12" 
+                                         Height="12" 
+                                         Fill="{StaticResource DangerRed}" 
+                                         Margin="0,0,10,0"/>
+                                <TextBlock x:Name="txtServerStatus" 
+                                           Text="Not Found" 
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Button x:Name="btnViewServer" 
+                                    Content="View Details" 
+                                    Grid.Column="2"
+                                    Width="100"
+                                    Height="28"
+                                    Background="{StaticResource AccentPurple}"
+                                    Foreground="White"
+                                    BorderThickness="0"
+                                    Click="btnViewServer_Click"
+                                    IsEnabled="False"/>
+                        </Grid>
+
+                        <!-- Client Certificate -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Client Certificate:" 
+                                       Grid.Column="0" 
+                                       VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Ellipse x:Name="indicatorClient" 
+                                         Width="12" 
+                                         Height="12" 
+                                         Fill="{StaticResource DangerRed}" 
+                                         Margin="0,0,10,0"/>
+                                <TextBlock x:Name="txtClientStatus" 
+                                           Text="Not Found" 
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Button x:Name="btnViewClient" 
+                                    Content="View Details" 
+                                    Grid.Column="2"
+                                    Width="100"
+                                    Height="28"
+                                    Background="{StaticResource AccentPurple}"
+                                    Foreground="White"
+                                    BorderThickness="0"
+                                    Click="btnViewClient_Click"
+                                    IsEnabled="False"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Generate Section -->
+                <Border Background="{StaticResource ControlBackground}" 
+                        BorderBrush="{StaticResource BorderBrush}" 
+                        BorderThickness="1" 
+                        CornerRadius="5" 
+                        Padding="20"
+                        Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock Text="Generate New Certificates" 
+                                   FontSize="16" 
+                                   FontWeight="Bold" 
+                                   Margin="0,0,0,10"/>
+
+                        <TextBlock Text="Customize your certificate settings before generation:" 
+                                   TextWrapping="Wrap" 
+                                   Foreground="{StaticResource GrayText}"
+                                   Margin="0,0,0,15"/>
+
+                        <!-- Organization Name -->
+                        <TextBlock Text="Organization Name:" 
+                                   FontWeight="SemiBold" 
+                                   Margin="0,0,0,5"/>
+                        <TextBox x:Name="txtOrgName" 
+                                 Text="RemoteAdmin" 
+                                 Height="32"
+                                 Margin="0,0,0,5"/>
+                        <TextBlock Text="Used in certificate CN (e.g., 'CN=YourOrg CA')" 
+                                   FontSize="10" 
+                                   Foreground="{StaticResource GrayText}"
+                                   Margin="0,0,0,15"/>
+
+                        <!-- Certificate Passwords Section -->
+                        <TextBlock Text="Certificate Passwords:" 
+                                   FontWeight="SemiBold" 
+                                   Margin="0,0,0,10"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- CA Password -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" 
+                                       Text="CA Password:" 
+                                       Margin="0,0,0,5"/>
+                            <PasswordBox x:Name="txtCAPassword" 
+                                         Grid.Row="1" Grid.Column="0"
+                                         Height="32"
+                                         Margin="0,0,0,5"
+                                         Background="{StaticResource ControlBackground}"
+                                         Foreground="{StaticResource TextColor}"
+                                         BorderBrush="{StaticResource BorderBrush}"
+                                         Padding="8"/>
+
+                            <!-- Server Password -->
+                            <TextBlock Grid.Row="0" Grid.Column="2" 
+                                       Text="Server Password:" 
+                                       Margin="0,0,0,5"/>
+                            <PasswordBox x:Name="txtServerPassword" 
+                                         Grid.Row="1" Grid.Column="2"
+                                         Height="32"
+                                         Margin="0,0,0,5"
+                                         Background="{StaticResource ControlBackground}"
+                                         Foreground="{StaticResource TextColor}"
+                                         BorderBrush="{StaticResource BorderBrush}"
+                                         Padding="8"/>
+
+                            <!-- Client Password -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" 
+                                       Text="Client Password:" 
+                                       Margin="0,10,0,5"/>
+                            <PasswordBox x:Name="txtClientPassword" 
+                                         Grid.Row="3" Grid.Column="0"
+                                         Height="32"
+                                         Margin="0,0,0,5"
+                                         Background="{StaticResource ControlBackground}"
+                                         Foreground="{StaticResource TextColor}"
+                                         BorderBrush="{StaticResource BorderBrush}"
+                                         Padding="8"/>
+
+                            <!-- Show Passwords Toggle -->
+                            <CheckBox x:Name="chkShowPasswords" 
+                                      Grid.Row="3" Grid.Column="2"
+                                      Content="Show passwords" 
+                                      Margin="0,10,0,0"
+                                      Checked="chkShowPasswords_Changed"
+                                      Unchecked="chkShowPasswords_Changed"
+                                      Foreground="{StaticResource GrayText}"/>
+
+                            <!-- Hidden TextBoxes for showing passwords -->
+                            <TextBox x:Name="txtCAPasswordVisible" 
+                                     Grid.Row="1" Grid.Column="0"
+                                     Height="32"
+                                     Margin="0,0,0,5"
+                                     Visibility="Collapsed"
+                                     Background="{StaticResource ControlBackground}"
+                                     Foreground="{StaticResource TextColor}"
+                                     BorderBrush="{StaticResource BorderBrush}"
+                                     Padding="8"/>
+                            <TextBox x:Name="txtServerPasswordVisible" 
+                                     Grid.Row="1" Grid.Column="2"
+                                     Height="32"
+                                     Margin="0,0,0,5"
+                                     Visibility="Collapsed"
+                                     Background="{StaticResource ControlBackground}"
+                                     Foreground="{StaticResource TextColor}"
+                                     BorderBrush="{StaticResource BorderBrush}"
+                                     Padding="8"/>
+                            <TextBox x:Name="txtClientPasswordVisible" 
+                                     Grid.Row="3" Grid.Column="0"
+                                     Height="32"
+                                     Margin="0,0,0,5"
+                                     Visibility="Collapsed"
+                                     Background="{StaticResource ControlBackground}"
+                                     Foreground="{StaticResource TextColor}"
+                                     BorderBrush="{StaticResource BorderBrush}"
+                                     Padding="8"/>
+                        </Grid>
+
+                        <TextBlock Text="💡 Tip: Use strong, unique passwords for each certificate" 
+                                   FontSize="10" 
+                                   Foreground="{StaticResource GrayText}"
+                                   Margin="0,5,0,15"/>
+
+                        <!-- Validity Periods -->
+                        <TextBlock Text="Validity Periods:" 
+                                   FontWeight="SemiBold" 
+                                   Margin="0,0,0,10"/>
+
+                        <Grid Margin="0,0,0,15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" 
+                                       Text="CA:" 
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,5"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" 
+                                     x:Name="txtCAYears" 
+                                     Text="10" 
+                                     Height="28"
+                                     Margin="0,0,10,5"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" 
+                                       Text="years" 
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource GrayText}"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" 
+                                       Text="Server:" 
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,5"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" 
+                                     x:Name="txtServerYears" 
+                                     Text="2" 
+                                     Height="28"
+                                     Margin="0,0,10,5"/>
+                            <TextBlock Grid.Row="1" Grid.Column="2" 
+                                       Text="years" 
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource GrayText}"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" 
+                                       Text="Client:" 
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,5"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" 
+                                     x:Name="txtClientYears" 
+                                     Text="2" 
+                                     Height="28"
+                                     Margin="0,0,10,5"/>
+                            <TextBlock Grid.Row="2" Grid.Column="2" 
+                                       Text="years" 
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource GrayText}"/>
+                        </Grid>
+
+                        <Border Background="#2C3E50" 
+                                BorderBrush="{StaticResource WarningOrange}" 
+                                BorderThickness="2" 
+                                CornerRadius="5" 
+                                Padding="15"
+                                Margin="0,0,0,15">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="⚠️" 
+                                               FontSize="20" 
+                                               Margin="0,0,10,0"/>
+                                    <TextBlock Text="Warning" 
+                                               FontWeight="Bold" 
+                                               FontSize="14" 
+                                               Foreground="{StaticResource WarningOrange}"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Text="Generating new certificates will REPLACE existing ones. All clients using old certificates will need to be rebuilt. Make sure to save your passwords!" 
+                                           TextWrapping="Wrap" 
+                                           Foreground="{StaticResource GrayText}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Button x:Name="btnGenerate" 
+                                Content="🔑 Generate Certificates" 
+                                Height="40"
+                                Background="{StaticResource SuccessGreen}"
+                                Foreground="White"
+                                BorderThickness="0"
+                                FontSize="14"
+                                FontWeight="Bold"
+                                Click="btnGenerate_Click"
+                                Cursor="Hand"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Output Log -->
+                <Border Background="{StaticResource ControlBackground}" 
+                        BorderBrush="{StaticResource BorderBrush}" 
+                        BorderThickness="1" 
+                        CornerRadius="5" 
+                        Padding="20">
+                    <StackPanel>
+                        <TextBlock Text="Output Log" 
+                                   FontSize="16" 
+                                   FontWeight="Bold" 
+                                   Margin="0,0,0,10"/>
+
+                        <Border Background="#0D1117" 
+                                BorderBrush="{StaticResource BorderBrush}" 
+                                BorderThickness="1" 
+                                CornerRadius="3"
+                                Padding="10">
+                            <ScrollViewer Height="150" VerticalScrollBarVisibility="Auto">
+                                <TextBlock x:Name="txtOutput" 
+                                           Text="Ready to generate certificates..." 
+                                           FontFamily="Consolas" 
+                                           FontSize="11"
+                                           Foreground="{StaticResource GrayText}"
+                                           TextWrapping="Wrap"/>
+                            </ScrollViewer>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" 
+                Background="{StaticResource SidebarBackground}" 
+                BorderBrush="{StaticResource BorderBrush}" 
+                BorderThickness="0,1,0,0" 
+                Padding="20">
+            <Grid>
+                <Button Content="Close" 
+                        Width="100" 
+                        Height="35"
+                        HorizontalAlignment="Right"
+                        Background="{StaticResource ControlBackground}"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Click="btnClose_Click"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

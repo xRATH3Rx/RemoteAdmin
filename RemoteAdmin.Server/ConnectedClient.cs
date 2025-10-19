@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.IO;
 using System.Net.Sockets;
 
 namespace RemoteAdmin.Server
@@ -39,14 +40,14 @@ namespace RemoteAdmin.Server
 
         public string LastSeenFormatted => LastSeen.ToString("HH:mm:ss");
 
-        public TcpClient Connection { get; set; }
-        public NetworkStream Stream { get; set; }
+        public TcpClient? Connection { get; set; }
+        public Stream? Stream { get; set; }
 
-        public ShellWindow ShellWindow { get; set; }
-        public TaskManagerWindow TaskManagerWindow { get; set; }
-        public FileManagerWindow FileManagerWindow { get; set; }
+        public ShellWindow? ShellWindow { get; set; }
+        public TaskManagerWindow? TaskManagerWindow { get; set; }
+        public FileManagerWindow? FileManagerWindow { get; set; }
 
-        public RemoteDesktopWindow RemoteDesktopWindow { get; set; }
+        public RemoteDesktopWindow? RemoteDesktopWindow { get; set; }
 
         public event PropertyChangedEventHandler PropertyChanged;
 

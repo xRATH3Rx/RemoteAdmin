@@ -6,6 +6,7 @@ namespace RemoteAdmin.Shared
     public class Message
     {
         public string Type { get; set; }
+        public string MessageType => Type;
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     }
     public class ClientInfoMessage : Message

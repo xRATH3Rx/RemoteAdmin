@@ -1,7 +1,7 @@
 ﻿<Window x:Class="RemoteAdmin.Server.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="RemoteAdmin Server" Height="600" Width="900"
+        Title="RemoteAdmin Server" Height="650" Width="900"
         Loaded="Window_Loaded"
         Background="#1E1E1E"
         Foreground="#F0F0F0">
@@ -52,6 +52,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
 
         <Style TargetType="TextBox">
             <Setter Property="Background" Value="{StaticResource ControlBackground}"/>
@@ -218,7 +219,7 @@
 
     <Grid>
         <TabControl SelectionChanged="TabControl_SelectionChanged">
-            
+
             <TabItem Header="Dashboard">
                 <Grid Margin="10" Background="{StaticResource PrimaryDarkBackground}">
                     <Grid.RowDefinitions>
@@ -274,7 +275,7 @@
                     </DataGrid>
                 </Grid>
             </TabItem>
-            
+
             <TabItem Header="Settings">
                 <Grid Margin="30" Background="{StaticResource PrimaryDarkBackground}">
                     <Grid.RowDefinitions>
@@ -284,12 +285,12 @@
 
                     <StackPanel Grid.Row="0">
                         <TextBlock Text="Server Configuration" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" Foreground="{StaticResource AccentPurple}"/>
-
-                        <StackPanel Margin="0,0,0,25">
-                            <TextBlock Text="Listen Port:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                            <TextBox x:Name="txtServerPort" Text="5900" Width="200" HorizontalAlignment="Left"/>
-                            <TextBlock Text="Port the server listens on for incoming client connections"
-                                       Foreground="{StaticResource GrayText}" FontSize="11" Margin="0,5,0,0"/>
+                        <StackPanel Orientation="Horizontal" Margin="10">
+                            <TextBlock Text="Bind IP:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <ComboBox x:Name="cmbBindIP" Width="150" Margin="0,0,10,0"/>
+                            <TextBlock Text="Port:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBox x:Name="txtServerPort" Width="80" Text="5900" Margin="0,0,10,0"/>
+                            <Button Content="Restart Server" Click="RestartServer_Click"/>
                         </StackPanel>
 
                         <StackPanel Margin="0,0,0,30">
@@ -297,6 +298,24 @@
                                     Width="250" HorizontalAlignment="Left" Click="RestartServer_Click"/>
                             <TextBlock x:Name="txtServerStatus" Text="Server is running"
                                        Foreground="{StaticResource SuccessGreen}" Margin="0,10,0,0" FontWeight="SemiBold"/>
+                        </StackPanel>
+
+                        <Separator Style="{StaticResource {x:Type Separator}}" Background="{StaticResource ControlBorder}" Margin="0,0,0,30"/>
+
+                        <!-- NEW: Certificate Manager Section -->
+                        <TextBlock Text="Security Certificates" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" Foreground="{StaticResource AccentPurple}"/>
+
+                        <StackPanel Margin="0,0,0,30">
+                            <TextBlock Text="Manage mTLS certificates for secure client-server communication"
+                                       Foreground="{StaticResource GrayText}" Margin="0,0,0,15" TextWrapping="Wrap"/>
+
+                            <Button x:Name="btnCertificateManager"
+                                    Content="🔒 Certificate Manager"
+                                    Width="250" HorizontalAlignment="Left" Click="CertificateManager_Click"/>
+
+                            <TextBlock x:Name="txtCertStatus"
+                                       Text="Certificates not checked"
+                                       Margin="0,10,0,0" Foreground="{StaticResource GrayText}" FontWeight="SemiBold"/>
                         </StackPanel>
 
                         <Separator Style="{StaticResource {x:Type Separator}}" Background="{StaticResource ControlBorder}" Margin="0,0,0,30"/>

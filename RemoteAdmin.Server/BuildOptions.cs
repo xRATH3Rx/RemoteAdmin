@@ -33,6 +33,8 @@
         // Output
         public string OutputPath { get; set; }
 
+        public string ClientPfxPassword { get; set; } = "";
+
         public BuildOptions()
         {
             // Connection defaults
@@ -56,6 +58,7 @@
 
             // Advanced defaults
             Obfuscate = false;
+            ClientPfxPassword = "changeit";
         }
     }
 }

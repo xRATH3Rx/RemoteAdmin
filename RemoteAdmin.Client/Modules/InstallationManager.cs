@@ -142,7 +142,7 @@ namespace RemoteAdmin.Client.Modules
         /// <summary>
         /// Adds the application to Windows startup
         /// </summary>
-        public static void InstallStartup(string exePath = null)
+        public static void InstallStartup(string? exePath = null)
         {
             try
             {

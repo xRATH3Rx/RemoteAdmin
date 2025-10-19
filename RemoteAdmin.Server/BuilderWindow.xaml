@@ -1,7 +1,7 @@
 ﻿<Window x:Class="RemoteAdmin.Server.BuilderWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Client Builder" Height="550" Width="650"
+        Title="Client Builder" Height="750" Width="850"
         WindowStartupLocation="CenterOwner"
         Background="#1E1E1E"
         ResizeMode="NoResize">

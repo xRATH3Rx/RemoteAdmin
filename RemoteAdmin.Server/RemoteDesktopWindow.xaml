@@ -198,7 +198,7 @@
                             Background="{StaticResource DangerRed}"
                             Foreground="White"
                             BorderThickness="0"
-                            Click="btnStop_Click"
+                            Click="BtnStop_Click"
                             FontWeight="Bold"
                             IsEnabled="False"/>
                 </StackPanel>

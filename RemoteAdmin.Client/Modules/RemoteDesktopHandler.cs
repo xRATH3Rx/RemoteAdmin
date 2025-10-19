@@ -16,7 +16,7 @@ namespace RemoteAdmin.Client.Modules
     internal class RemoteDesktopHandler
     {
         public static bool isStreamingDesktop = false;
-        public static Thread desktopStreamThread;
+        public static Thread? desktopStreamThread;
 
         #region Win32 APIs
 
@@ -74,24 +74,32 @@ namespace RemoteAdmin.Client.Modules
 
         #endregion
 
-        public static async Task HandleStartRemoteDesktop(StartRemoteDesktopMessage message, NetworkStream stream)
+        public static Task HandleStartRemoteDesktop(StartRemoteDesktopMessage message, Stream stream)
         {
+            ArgumentNullException.ThrowIfNull(message);
+            ArgumentNullException.ThrowIfNull(stream);
+
             try
             {
                 isStreamingDesktop = true;
-                int quality = message.Quality;
 
+                var quality = Math.Clamp(message.Quality, 1, 100);
                 Console.WriteLine($"Starting desktop streaming with quality: {quality}%");
 
-                desktopStreamThread = new Thread(() => StreamDesktop(stream, quality));
-                desktopStreamThread.IsBackground = true;
+                desktopStreamThread = new Thread(() => StreamDesktop(stream, quality))
+                {
+                    IsBackground = true,
+                    Name = "DesktopStream"
+                };
                 desktopStreamThread.Start();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error starting remote desktop: {ex.Message}");
+                Console.WriteLine($"Error starting remote desktop: {ex}");
             }
+            return Task.CompletedTask;
         }
+
 
         internal static void HandleStopRemoteDesktop()
         {
@@ -105,7 +113,7 @@ namespace RemoteAdmin.Client.Modules
             Console.WriteLine("Stopped desktop streaming");
         }
 
-        public static void StreamDesktop(NetworkStream stream, int quality)
+        public static void StreamDesktop(Stream stream, int quality)
         {
             try
             {

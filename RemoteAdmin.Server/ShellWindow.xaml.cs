@@ -68,7 +68,7 @@ namespace RemoteAdmin.Server
             if (!this.IsLoaded || txtOutput == null)
                 return;
 
-            string shellType = (cboShellType.SelectedItem as ComboBoxItem)?.Content.ToString();
+            string? shellType = (cboShellType.SelectedItem as ComboBoxItem)?.Content.ToString();
             AppendOutput($"\n[Shell type changed to: {shellType}]\n\n");
         }
 

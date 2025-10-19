@@ -25,12 +25,12 @@ namespace RemoteAdmin.Server
             imgDesktop.Focus();
         }
 
-        private async void btnStart_Click(object sender, RoutedEventArgs e)
+        private void btnStart_Click(object sender, RoutedEventArgs e)
         {
             StartRemoteDesktop();
         }
 
-        private async void btnStop_Click(object sender, RoutedEventArgs e)
+        private void BtnStop_Click(object sender, RoutedEventArgs e)
         {
             StopRemoteDesktop();
         }

