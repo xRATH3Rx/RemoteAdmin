@@ -4,9 +4,8 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Text;
+using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
 using RemoteAdmin.Shared;
@@ -17,6 +16,9 @@ namespace RemoteAdmin.Client.Modules
     {
         public static bool isStreamingDesktop = false;
         public static Thread? desktopStreamThread;
+        private static int currentMonitorIndex = 0; // Track which monitor we're streaming
+        private static int currentQuality = 75;
+        private static Stream currentStream;
 
         #region Win32 APIs
 
@@ -56,8 +58,44 @@ namespace RemoteAdmin.Client.Modules
         [DllImport("user32.dll")]
         public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
 
+        // NEW: Multi-monitor support
+        [DllImport("user32.dll")]
+        public static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumDelegate lpfnEnum, IntPtr dwData);
+
+        [DllImport("user32.dll")]
+        public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOEX lpmi);
+
+        public delegate bool MonitorEnumDelegate(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        public struct MONITORINFOEX
+        {
+            public int cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public uint dwFlags;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+            public string szDevice;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+
+            public int Width => Right - Left;
+            public int Height => Bottom - Top;
+        }
+
         public const int SM_CXSCREEN = 0;
         public const int SM_CYSCREEN = 1;
+        public const int SM_XVIRTUALSCREEN = 76;
+        public const int SM_YVIRTUALSCREEN = 77;
+        public const int SM_CXVIRTUALSCREEN = 78;
+        public const int SM_CYVIRTUALSCREEN = 79;
         public const int SRCCOPY = 0x00CC0020;
 
         public const uint MOUSEEVENTF_MOVE = 0x0001;
@@ -72,21 +110,238 @@ namespace RemoteAdmin.Client.Modules
 
         public const uint KEYEVENTF_KEYUP = 0x0002;
 
+        public const uint MONITOR_DEFAULTTOPRIMARY = 1;
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        public struct DISPLAY_DEVICE
+        {
+            public int cb;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+            public string DeviceName;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+            public string DeviceString;
+            public DisplayDeviceStateFlags StateFlags;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+            public string DeviceID;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+            public string DeviceKey;
+        }
+
+        [Flags]
+        public enum DisplayDeviceStateFlags : int
+        {
+            AttachedToDesktop = 0x1,
+            MultiDriver = 0x2,
+            PrimaryDevice = 0x4,
+            MirroringDriver = 0x8,
+            VGACompatible = 0x10,
+            Removable = 0x20,
+            ModesPruned = 0x8000000,
+            Remote = 0x4000000,
+            Disconnect = 0x2000000
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct DEVMODE
+        {
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+            public string dmDeviceName;
+            public short dmSpecVersion;
+            public short dmDriverVersion;
+            public short dmSize;
+            public short dmDriverExtra;
+            public int dmFields;
+            public int dmPositionX;
+            public int dmPositionY;
+            public int dmDisplayOrientation;
+            public int dmDisplayFixedOutput;
+            public short dmColor;
+            public short dmDuplex;
+            public short dmYResolution;
+            public short dmTTOption;
+            public short dmCollate;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+            public string dmFormName;
+            public short dmLogPixels;
+            public int dmBitsPerPel;
+            public int dmPelsWidth;
+            public int dmPelsHeight;
+            public int dmDisplayFlags;
+            public int dmDisplayFrequency;
+            public int dmICMMethod;
+            public int dmICMIntent;
+            public int dmMediaType;
+            public int dmDitherType;
+            public int dmReserved1;
+            public int dmReserved2;
+            public int dmPanningWidth;
+            public int dmPanningHeight;
+        }
+
+        [DllImport("user32.dll")]
+        public static extern bool EnumDisplayDevices(string lpDevice, uint iDevNum, ref DISPLAY_DEVICE lpDisplayDevice, uint dwFlags);
+
+        [DllImport("user32.dll")]
+        public static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
+
+        public const int ENUM_CURRENT_SETTINGS = -1;
+
         #endregion
 
-        public static Task HandleStartRemoteDesktop(StartRemoteDesktopMessage message, Stream stream)
+        // NEW: Get all available monitors using Win32 API
+        private static List<MonitorData> monitors = new List<MonitorData>();
+
+        private class MonitorData
+        {
+            public int Index { get; set; }
+            public string DeviceName { get; set; }
+            public RECT Bounds { get; set; }
+            public bool IsPrimary { get; set; }
+        }
+
+        public static List<MonitorInfo> GetMonitors()
+        {
+            monitors.Clear();
+            Console.WriteLine("Starting monitor enumeration...");
+
+            int index = 0;
+
+            // Use a different approach - enumerate using DISPLAY_DEVICE
+            try
+            {
+                for (uint i = 0; ; i++)
+                {
+                    DISPLAY_DEVICE displayDevice = new DISPLAY_DEVICE();
+                    displayDevice.cb = Marshal.SizeOf(displayDevice);
+
+                    if (!EnumDisplayDevices(null, i, ref displayDevice, 0))
+                        break;
+
+                    // Skip non-active displays
+                    if ((displayDevice.StateFlags & DisplayDeviceStateFlags.AttachedToDesktop) == 0)
+                        continue;
+
+                    // Get monitor info for this device
+                    DEVMODE devMode = new DEVMODE();
+                    devMode.dmSize = (short)Marshal.SizeOf(devMode);
+
+                    if (EnumDisplaySettings(displayDevice.DeviceName, ENUM_CURRENT_SETTINGS, ref devMode))
+                    {
+                        bool isPrimary = (displayDevice.StateFlags & DisplayDeviceStateFlags.PrimaryDevice) != 0;
+
+                        var monitorData = new MonitorData
+                        {
+                            Index = index,
+                            DeviceName = displayDevice.DeviceName,
+                            Bounds = new RECT
+                            {
+                                Left = devMode.dmPositionX,
+                                Top = devMode.dmPositionY,
+                                Right = devMode.dmPositionX + devMode.dmPelsWidth,
+                                Bottom = devMode.dmPositionY + devMode.dmPelsHeight
+                            },
+                            IsPrimary = isPrimary
+                        };
+
+                        monitors.Add(monitorData);
+
+                        Console.WriteLine($"Found monitor {index}: {displayDevice.DeviceName}, " +
+                                        $"{devMode.dmPelsWidth}x{devMode.dmPelsHeight}, " +
+                                        $"Primary: {isPrimary}, " +
+                                        $"Position: ({devMode.dmPositionX},{devMode.dmPositionY})");
+
+                        index++;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error enumerating displays: {ex.Message}");
+            }
+
+            Console.WriteLine($"Total monitors found: {monitors.Count}");
+
+            // Create the return list
+            var result = monitors.Select(m => new MonitorInfo
+            {
+                Index = m.Index,
+                DeviceName = m.DeviceName,
+                Width = m.Bounds.Width,
+                Height = m.Bounds.Height,
+                IsPrimary = m.IsPrimary
+            }).ToList();
+
+            // If still no monitors found, create a default one for primary screen
+            if (result.Count == 0)
+            {
+                Console.WriteLine("WARNING: No monitors detected! Creating default monitor entry...");
+                int width = GetSystemMetrics(SM_CXSCREEN);
+                int height = GetSystemMetrics(SM_CYSCREEN);
+
+                monitors.Add(new MonitorData
+                {
+                    Index = 0,
+                    DeviceName = "Primary Display",
+                    Bounds = new RECT { Left = 0, Top = 0, Right = width, Bottom = height },
+                    IsPrimary = true
+                });
+
+                result.Add(new MonitorInfo
+                {
+                    Index = 0,
+                    DeviceName = "Primary Display",
+                    Width = width,
+                    Height = height,
+                    IsPrimary = true
+                });
+            }
+
+            return result;
+        }
+
+        public static async Task HandleStartRemoteDesktop(StartRemoteDesktopMessage message, Stream stream)
         {
             ArgumentNullException.ThrowIfNull(message);
             ArgumentNullException.ThrowIfNull(stream);
 
             try
             {
+                currentStream = stream;
+
+                // ALWAYS enumerate monitors first
+                var monitorsList = GetMonitors();
+                Console.WriteLine($"Enumerated {monitorsList.Count} monitors");
+
+                // Send monitor info to server
+                var monitorInfo = new MonitorInfoMessage
+                {
+                    Monitors = monitorsList
+                };
+                await NetworkHelper.SendMessageAsync(stream, monitorInfo);
+                Console.WriteLine($"Sent monitor info: {monitorInfo.Monitors.Count} monitors");
+
+                // If Quality is 0, just send monitor info (not starting stream)
+                if (message.Quality == 0)
+                {
+                    Console.WriteLine("Quality is 0, only sending monitor info");
+                    return;
+                }
+
+                // Start actual streaming
                 isStreamingDesktop = true;
+                currentQuality = Math.Clamp(message.Quality, 1, 100);
+                currentMonitorIndex = message.MonitorIndex;
 
-                var quality = Math.Clamp(message.Quality, 1, 100);
-                Console.WriteLine($"Starting desktop streaming with quality: {quality}%");
+                // Validate monitor index
+                if (currentMonitorIndex < 0 || currentMonitorIndex >= monitors.Count)
+                {
+                    Console.WriteLine($"Invalid monitor index {currentMonitorIndex}, defaulting to 0");
+                    currentMonitorIndex = 0;
+                }
 
-                desktopStreamThread = new Thread(() => StreamDesktop(stream, quality))
+                Console.WriteLine($"Starting desktop streaming on monitor {currentMonitorIndex} with quality: {currentQuality}%");
+
+                desktopStreamThread = new Thread(() => StreamDesktop(stream, currentQuality, currentMonitorIndex))
                 {
                     IsBackground = true,
                     Name = "DesktopStream"
@@ -97,9 +352,34 @@ namespace RemoteAdmin.Client.Modules
             {
                 Console.WriteLine($"Error starting remote desktop: {ex}");
             }
-            return Task.CompletedTask;
         }
 
+        // NEW: Handle monitor switching
+        public static void HandleSelectMonitor(SelectMonitorMessage message)
+        {
+            try
+            {
+                Console.WriteLine($"Switching from monitor {currentMonitorIndex} to monitor {message.MonitorIndex}");
+
+                // Validate new monitor index
+                if (monitors.Count == 0)
+                    GetMonitors();
+
+                if (message.MonitorIndex < 0 || message.MonitorIndex >= monitors.Count)
+                {
+                    Console.WriteLine($"Invalid monitor index: {message.MonitorIndex}");
+                    return;
+                }
+
+                // Simply update the monitor index - the streaming loop will pick it up
+                currentMonitorIndex = message.MonitorIndex;
+                Console.WriteLine($"Now streaming monitor {currentMonitorIndex}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error switching monitor: {ex.Message}");
+            }
+        }
 
         internal static void HandleStopRemoteDesktop()
         {
@@ -113,7 +393,7 @@ namespace RemoteAdmin.Client.Modules
             Console.WriteLine("Stopped desktop streaming");
         }
 
-        public static void StreamDesktop(Stream stream, int quality)
+        public static void StreamDesktop(Stream stream, int quality, int monitorIndex)
         {
             try
             {
@@ -121,11 +401,12 @@ namespace RemoteAdmin.Client.Modules
                 {
                     try
                     {
-                        var screenshot = CaptureScreen();
+                        // Use the current monitor index (it may change during streaming)
+                        var screenshot = CaptureScreen(currentMonitorIndex);
 
                         if (screenshot != null)
                         {
-                            byte[] imageData = CompressImage(screenshot, quality);
+                            byte[] imageData = CompressImage(screenshot, currentQuality);
 
                             var frameMessage = new ScreenFrameMessage
                             {
@@ -139,7 +420,7 @@ namespace RemoteAdmin.Client.Modules
                             screenshot.Dispose();
                         }
 
-                        Thread.Sleep(66);
+                        Thread.Sleep(66); // ~15 FPS
                     }
                     catch (Exception ex)
                     {
@@ -154,20 +435,36 @@ namespace RemoteAdmin.Client.Modules
             }
         }
 
-        public static Bitmap CaptureScreen()
+        // UPDATED: Now accepts monitor index parameter
+        public static Bitmap CaptureScreen(int monitorIndex = 0)
         {
             try
             {
-                int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-                int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+                // Ensure monitors are enumerated
+                if (monitors.Count == 0)
+                    GetMonitors();
+
+                // Validate monitor index
+                if (monitorIndex < 0 || monitorIndex >= monitors.Count)
+                {
+                    monitorIndex = 0; // Fall back to primary
+                }
+
+                // Get the selected monitor
+                var selectedMonitor = monitors[monitorIndex];
+                RECT bounds = selectedMonitor.Bounds;
+
+                int width = bounds.Width;
+                int height = bounds.Height;
 
                 IntPtr hDesk = GetDesktopWindow();
                 IntPtr hSrce = GetWindowDC(hDesk);
                 IntPtr hDest = CreateCompatibleDC(hSrce);
-                IntPtr hBmp = CreateCompatibleBitmap(hSrce, screenWidth, screenHeight);
+                IntPtr hBmp = CreateCompatibleBitmap(hSrce, width, height);
                 IntPtr hOldBmp = SelectObject(hDest, hBmp);
 
-                bool result = BitBlt(hDest, 0, 0, screenWidth, screenHeight, hSrce, 0, 0, SRCCOPY);
+                // Capture from the monitor's position
+                bool result = BitBlt(hDest, 0, 0, width, height, hSrce, bounds.Left, bounds.Top, SRCCOPY);
 
                 Bitmap bitmap = Image.FromHbitmap(hBmp);
 
@@ -226,11 +523,30 @@ namespace RemoteAdmin.Client.Modules
         {
             try
             {
-                int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-                int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+                // Ensure monitors are enumerated
+                if (monitors.Count == 0)
+                    GetMonitors();
 
-                int absX = (message.X * 65535) / screenWidth;
-                int absY = (message.Y * 65535) / screenHeight;
+                // Get the bounds of the current monitor
+                if (currentMonitorIndex < 0 || currentMonitorIndex >= monitors.Count)
+                    currentMonitorIndex = 0;
+
+                var selectedMonitor = monitors[currentMonitorIndex];
+                RECT bounds = selectedMonitor.Bounds;
+
+                // Convert relative coordinates to absolute screen coordinates
+                int absoluteX = bounds.Left + message.X;
+                int absoluteY = bounds.Top + message.Y;
+
+                // Get full virtual screen dimensions
+                int virtualScreenWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+                int virtualScreenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+                int virtualScreenLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
+                int virtualScreenTop = GetSystemMetrics(SM_YVIRTUALSCREEN);
+
+                // Convert to normalized coordinates (0-65535) relative to virtual screen
+                int absX = ((absoluteX - virtualScreenLeft) * 65535) / virtualScreenWidth;
+                int absY = ((absoluteY - virtualScreenTop) * 65535) / virtualScreenHeight;
 
                 switch (message.Action)
                 {
@@ -298,6 +614,5 @@ namespace RemoteAdmin.Client.Modules
                 Console.WriteLine($"Error handling keyboard input: {ex.Message}");
             }
         }
-
     }
 }

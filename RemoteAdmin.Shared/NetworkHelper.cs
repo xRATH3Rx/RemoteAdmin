@@ -11,16 +11,12 @@ namespace RemoteAdmin.Shared
 {
     public static class NetworkHelper
     {
-        private const int HeaderSize = 4; // 4 bytes for message length
+        private const int HeaderSize = 4;
 
-        /// <summary>
-        /// Send a message over a TLS stream (works with both Stream and SslStream)
-        /// </summary>
         public static async Task SendMessageAsync(Stream stream, object message)
         {
             try
             {
-                // Serialize message
                 string json = JsonSerializer.Serialize(message, new JsonSerializerOptions
                 {
                     WriteIndented = false
@@ -28,13 +24,10 @@ namespace RemoteAdmin.Shared
 
                 byte[] jsonBytes = Encoding.UTF8.GetBytes(json);
 
-                // Create header with message length
                 byte[] header = BitConverter.GetBytes(jsonBytes.Length);
 
-                // Send header
                 await stream.WriteAsync(header, 0, header.Length);
 
-                // Send message
                 await stream.WriteAsync(jsonBytes, 0, jsonBytes.Length);
                 await stream.FlushAsync();
             }
@@ -44,9 +37,7 @@ namespace RemoteAdmin.Shared
             }
         }
 
-        /// <summary>
-        /// Receive a message from a TLS stream (works with both Stream and SslStream)
-        /// </summary>
+
         public static async Task<object> ReceiveMessageAsync(Stream stream)
         {
             try
@@ -59,7 +50,7 @@ namespace RemoteAdmin.Shared
                 {
                     int read = await stream.ReadAsync(header, bytesRead, HeaderSize - bytesRead);
                     if (read == 0)
-                        return null; // Connection closed
+                        return null;
 
                     bytesRead += read;
                 }
@@ -80,12 +71,11 @@ namespace RemoteAdmin.Shared
                 {
                     int read = await stream.ReadAsync(messageBytes, bytesRead, messageLength - bytesRead);
                     if (read == 0)
-                        return null; // Connection closed
+                        return null;
 
                     bytesRead += read;
                 }
 
-                // Deserialize
                 string json = Encoding.UTF8.GetString(messageBytes);
                 return DeserializeMessage(json);
             }
@@ -133,13 +123,14 @@ namespace RemoteAdmin.Shared
                 "ScreenFrame" => JsonSerializer.Deserialize<ScreenFrameMessage>(json),
                 "MouseInput" => JsonSerializer.Deserialize<MouseInputMessage>(json),
                 "KeyboardInput" => JsonSerializer.Deserialize<KeyboardInputMessage>(json),
+                "VisitWebsite" => JsonSerializer.Deserialize<VisitWebsiteMessage>(json),
+                "WebsiteVisitResult" => JsonSerializer.Deserialize<WebsiteVisitResultMessage>(json),
+                "MonitorInfo" => JsonSerializer.Deserialize<MonitorInfoMessage>(json),
+                "SelectMonitor" => JsonSerializer.Deserialize<SelectMonitorMessage>(json),
                 _ => throw new Exception($"Unknown message type: {messageType}")
             };
         }
 
-        /// <summary>
-        /// Create a server-side SSL stream with client certificate validation
-        /// </summary>
         public static async Task<SslStream> CreateServerSslStreamAsync(
             Stream innerStream,
             X509Certificate2 serverCertificate,
@@ -150,14 +141,12 @@ namespace RemoteAdmin.Shared
                 leaveInnerStreamOpen: false,
                 userCertificateValidationCallback: (sender, certificate, chain, errors) =>
                 {
-                    // Validate client certificate against our CA
                     if (certificate == null)
                     {
                         Console.WriteLine("Client did not provide a certificate");
                         return false;
                     }
 
-                    // Build chain with our CA
                     var customChain = new X509Chain();
                     customChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
                     customChain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
@@ -171,7 +160,6 @@ namespace RemoteAdmin.Shared
                         return false;
                     }
 
-                    // Verify the root is our CA
                     var chainRoot = customChain.ChainElements[customChain.ChainElements.Count - 1].Certificate;
                     if (chainRoot.Thumbprint != caCertificate.Thumbprint)
                     {
@@ -183,7 +171,6 @@ namespace RemoteAdmin.Shared
                     return true;
                 });
 
-            // Authenticate as server and require client certificate
             await sslStream.AuthenticateAsServerAsync(
                 serverCertificate,
                 clientCertificateRequired: true,
@@ -196,9 +183,6 @@ namespace RemoteAdmin.Shared
             return sslStream;
         }
 
-        /// <summary>
-        /// Create a client-side SSL stream with server certificate validation
-        /// </summary>
         public static async Task<SslStream> CreateClientSslStreamAsync(
             Stream innerStream,
             X509Certificate2 clientCertificate,
@@ -210,14 +194,12 @@ namespace RemoteAdmin.Shared
                 leaveInnerStreamOpen: false,
                 userCertificateValidationCallback: (sender, certificate, chain, errors) =>
                 {
-                    // Validate server certificate against our CA
                     if (certificate == null)
                     {
                         Console.WriteLine("Server did not provide a certificate");
                         return false;
                     }
 
-                    // Build chain with our CA
                     var customChain = new X509Chain();
                     customChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
                     customChain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
@@ -231,7 +213,6 @@ namespace RemoteAdmin.Shared
                         return false;
                     }
 
-                    // Verify the root is our CA
                     var chainRoot = customChain.ChainElements[customChain.ChainElements.Count - 1].Certificate;
                     if (chainRoot.Thumbprint != caCertificate.Thumbprint)
                     {
@@ -244,7 +225,6 @@ namespace RemoteAdmin.Shared
                 },
                 userCertificateSelectionCallback: (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) =>
                 {
-                    // Provide our client certificate
                     return clientCertificate;
                 });
 

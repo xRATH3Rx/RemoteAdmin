@@ -4,17 +4,10 @@ using System.IO;
 
 namespace RemoteAdmin.Shared
 {
-    /// <summary>
-    /// Helper class for splitting and reassembling files for transfer.
-    /// Based on Quasar's FileSplit implementation.
-    /// </summary>
     public class FileSplitHelper
     {
         public const int MaxChunkSize = 65535; // 64KB chunks
 
-        /// <summary>
-        /// Reads a file in chunks for transfer.
-        /// </summary>
         public static IEnumerable<FileChunk> ReadFileChunks(string filePath)
         {
             using (var fileStream = File.OpenRead(filePath))
@@ -44,9 +37,6 @@ namespace RemoteAdmin.Shared
             }
         }
 
-        /// <summary>
-        /// Writes a chunk to a file.
-        /// </summary>
         public static void WriteFileChunk(string filePath, FileChunk chunk)
         {
             using (var fileStream = File.Open(filePath, FileMode.OpenOrCreate, FileAccess.Write))

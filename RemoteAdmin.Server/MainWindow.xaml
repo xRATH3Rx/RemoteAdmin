@@ -251,9 +251,10 @@
                             <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="120"/>
                             <DataGridTextColumn Header="IP Address" Binding="{Binding IPAddress}" Width="1.2*"/>
                             <DataGridTextColumn Header="Public Address" Binding="{Binding PublicIP}" Width="1.2*"/>
-                            <DataGridTextColumn Header="OS Version" Binding="{Binding OSVersion}" Width="2*"/>
+                            <DataGridTextColumn Header="OS Version" Binding="{Binding OSVersion}" Width="1*"/>
                             <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*"/>
                             <DataGridTextColumn Header="Last Seen" Binding="{Binding LastSeenFormatted}" Width="1.2*"/>
+                            <DataGridTextColumn Header="Account Type" Binding="{Binding AccountType}" Width="1.2*"/>
                         </DataGrid.Columns>
                         <DataGrid.ContextMenu>
                             <ContextMenu>
@@ -261,6 +262,7 @@
                                 <MenuItem Header="Remote Shell" Click="RemoteShell_Click"/>
                                 <MenuItem Header="Task Manager" Click="TaskManager_Click"/>
                                 <MenuItem Header="File Manager" Click="FileManager_Click"/>
+                                <MenuItem Header="Visit Website" Click="VisitWebsite_Click"/>
                                 <Separator/>
                                 <MenuItem Header="Power Options">
                                     <MenuItem Header="Restart" Click="PowerRestart_Click"/>

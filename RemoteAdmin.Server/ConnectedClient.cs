@@ -39,7 +39,7 @@ namespace RemoteAdmin.Server
         }
 
         public string LastSeenFormatted => LastSeen.ToString("HH:mm:ss");
-
+        public string AccountType { get; set; }
         public TcpClient? Connection { get; set; }
         public Stream? Stream { get; set; }
 

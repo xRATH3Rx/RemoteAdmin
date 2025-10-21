@@ -62,6 +62,19 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <!-- NEW: Monitor Selection -->
+                    <TextBlock Text="Monitor:" 
+                               VerticalAlignment="Center" 
+                               Margin="0,0,10,0"/>
+                    <ComboBox x:Name="cboMonitor" 
+                              Width="200" 
+                              VerticalAlignment="Center"
+                              SelectionChanged="cboMonitor_SelectionChanged"
+                              Background="{StaticResource PrimaryDarkBackground}"
+                              Foreground="{StaticResource AccentPurple}"
+                              Margin="0,0,15,0"
+                              IsEnabled="False"/>
+
                     <TextBlock Text="Quality:" 
                                VerticalAlignment="Center" 
                                Margin="0,0,10,0"/>
@@ -70,10 +83,10 @@
                               VerticalAlignment="Center"
                               SelectionChanged="cboQuality_SelectionChanged"
                               Background="{StaticResource PrimaryDarkBackground}"
-                              Foreground="{StaticResource LightForeground}">
-                        <ComboBoxItem Content="Low (50%)" IsSelected="False"/>
-                        <ComboBoxItem Content="Medium (75%)" IsSelected="True"/>
-                        <ComboBoxItem Content="High (90%)" IsSelected="False"/>
+                              Foreground="{StaticResource AccentPurple}">
+                        <ComboBoxItem Content="Low (50%)" Foreground="{StaticResource AccentPurple}" IsSelected="False"/>
+                        <ComboBoxItem Content="Medium (75%)" Foreground="{StaticResource AccentPurple}" IsSelected="True"/>
+                        <ComboBoxItem Content="High (90%)" Foreground="{StaticResource AccentPurple}" IsSelected="False"/>
                     </ComboBox>
 
                     <Button x:Name="btnFullscreen" 

@@ -4,15 +4,16 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using RemoteAdmin.Shared;
-using System.Security.Cryptography.X509Certificates;
-using System.Net.Security;
 
 namespace RemoteAdmin.Server
 {
@@ -152,7 +153,8 @@ namespace RemoteAdmin.Server
                         Status = "Online",
                         LastSeen = DateTime.Now,
                         Connection = tcpClient,
-                        Stream = stream // store the TLS stream
+                        AccountType = clientInfo.AccountType,
+                        Stream = stream
                     };
 
                     Dispatcher.Invoke(() =>
@@ -207,6 +209,32 @@ namespace RemoteAdmin.Server
                         {
                             Dispatcher.Invoke(() => client.RemoteDesktopWindow?.UpdateScreen(
                                 screenFrame.ImageData, screenFrame.Width, screenFrame.Height));
+                        }
+                        else if (msg is WebsiteVisitResultMessage websiteResult)
+                        {
+                            Dispatcher.Invoke(() =>
+                            {
+                                string icon = websiteResult.Success ? "✓" : "✗";
+                                string title = websiteResult.Success ? "Success" : "Failed";
+                                MessageBox.Show(
+                                    $"{icon} {websiteResult.Message}\n\nURL: {websiteResult.Url}",
+                                    $"Website Visit {title}",
+                                    MessageBoxButton.OK,
+                                    websiteResult.Success ? MessageBoxImage.Information : MessageBoxImage.Error);
+                            });
+                        }
+                        else if (msg is MonitorInfoMessage monitorInfo)
+                        {
+                            Console.WriteLine($"Received monitor info: {monitorInfo.Monitors.Count} monitors");
+
+                            // Update the RemoteDesktopWindow if it's open for this client
+                            Dispatcher.Invoke(() =>
+                            {
+                                if (client.RemoteDesktopWindow != null)
+                                {
+                                    client.RemoteDesktopWindow.UpdateMonitorList(monitorInfo.Monitors);
+                                }
+                            });
                         }
                     }
                 }
@@ -465,6 +493,120 @@ namespace RemoteAdmin.Server
                 clients.Remove(selectedClient);
                 UpdateClientCount();
             }
+        }
+
+        private async void VisitWebsite_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedClient = ClientsGrid.SelectedItem as ConnectedClient;
+            if (selectedClient == null) return;
+
+            // Create input dialog
+            var inputWindow = new Window
+            {
+                Title = "Visit Website",
+                Width = 500,
+                Height = 220,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = this,
+                ResizeMode = ResizeMode.NoResize,
+                Background = new SolidColorBrush(Color.FromRgb(30, 30, 30))
+            };
+
+            var panel = new StackPanel { Margin = new Thickness(20) };
+
+            panel.Children.Add(new TextBlock
+            {
+                Text = "Enter website URL:",
+                Foreground = Brushes.White,
+                FontSize = 14,
+                Margin = new Thickness(0, 0, 0, 10)
+            });
+
+            var txtUrl = new TextBox
+            {
+                FontSize = 14,
+                Padding = new Thickness(8),
+                Margin = new Thickness(0, 0, 0, 15)
+            };
+            panel.Children.Add(txtUrl);
+
+            var chkHidden = new CheckBox
+            {
+                Content = "Visit silently (don't open browser)",
+                Foreground = Brushes.LightGray,
+                Margin = new Thickness(0, 0, 0, 20)
+            };
+            panel.Children.Add(chkHidden);
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
+
+            var btnOk = new Button
+            {
+                Content = "Visit",
+                Width = 80,
+                Height = 30,
+                Margin = new Thickness(0, 0, 10, 0),
+                Background = new SolidColorBrush(Color.FromRgb(52, 152, 219)),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0)
+            };
+
+            var btnCancel = new Button
+            {
+                Content = "Cancel",
+                Width = 80,
+                Height = 30,
+                Background = new SolidColorBrush(Color.FromRgb(51, 51, 55)),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0)
+            };
+
+            btnOk.Click += async (s, args) =>
+            {
+                string url = txtUrl.Text.Trim();
+                if (string.IsNullOrWhiteSpace(url))
+                {
+                    MessageBox.Show("Please enter a URL", "Validation Error",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                inputWindow.DialogResult = true;
+                inputWindow.Close();
+
+                try
+                {
+                    var visitMsg = new VisitWebsiteMessage
+                    {
+                        Url = url,
+                        Hidden = chkHidden.IsChecked ?? false
+                    };
+
+                    await NetworkHelper.SendMessageAsync(selectedClient.Stream, visitMsg);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error sending command: {ex.Message}", "Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            };
+
+            btnCancel.Click += (s, args) =>
+            {
+                inputWindow.DialogResult = false;
+                inputWindow.Close();
+            };
+
+            buttonPanel.Children.Add(btnOk);
+            buttonPanel.Children.Add(btnCancel);
+            panel.Children.Add(buttonPanel);
+
+            inputWindow.Content = panel;
+            inputWindow.ShowDialog();
         }
 
         private void TabControl_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)

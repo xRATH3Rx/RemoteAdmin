@@ -21,6 +21,7 @@ namespace RemoteAdmin.Shared
         public string OSVersion { get; set; }
         public string IPAddress { get; set; }
         public string PublicIP { get; set; }
+        public string AccountType { get; set; }
     }
 
     public class HeartbeatMessage : Message
@@ -63,7 +64,7 @@ namespace RemoteAdmin.Shared
         }
 
         public string Command { get; set; }
-        public string ShellType { get; set; } = "PowerShell"; // PowerShell or CMD
+        public string ShellType { get; set; } = "PowerShell";
     }
 
     // Shell output from client to server
@@ -86,7 +87,7 @@ namespace RemoteAdmin.Shared
             Type = "PowerCommand";
         }
 
-        public string Command { get; set; } // Restart, Shutdown, Sleep, LogOff
+        public string Command { get; set; }
     }
 
     // Request process list
@@ -305,8 +306,8 @@ namespace RemoteAdmin.Shared
     public class StartRemoteDesktopMessage : Message
     {
         public StartRemoteDesktopMessage() { Type = "StartRemoteDesktop"; }
-        public int Quality { get; set; } = 75; // JPEG quality 1-100
-        public int ScreenIndex { get; set; } = 0; // Which monitor
+        public int Quality { get; set; } = 75;
+        public int MonitorIndex { get; set; } = 0;
     }
 
     public class StopRemoteDesktopMessage : Message
@@ -327,9 +328,9 @@ namespace RemoteAdmin.Shared
         public MouseInputMessage() { Type = "MouseInput"; }
         public int X { get; set; }
         public int Y { get; set; }
-        public string Button { get; set; } // "Left", "Right", "Middle"
-        public string Action { get; set; } // "Down", "Up", "Move", "DoubleClick", "Wheel"
-        public int Delta { get; set; } // For mouse wheel
+        public string Button { get; set; }
+        public string Action { get; set; }
+        public int Delta { get; set; }
     }
 
     public class KeyboardInputMessage : Message
@@ -340,5 +341,61 @@ namespace RemoteAdmin.Shared
         public bool Shift { get; set; }
         public bool Ctrl { get; set; }
         public bool Alt { get; set; }
+    }
+
+    public class VisitWebsiteMessage : Message
+    {
+        public VisitWebsiteMessage()
+        {
+            Type = "VisitWebsite";
+        }
+
+        public string Url { get; set; }
+        public bool Hidden { get; set; }
+    }
+
+    // Visit website result
+    public class WebsiteVisitResultMessage : Message
+    {
+        public WebsiteVisitResultMessage()
+        {
+            Type = "WebsiteVisitResult";
+        }
+
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public string Url { get; set; }
+    }
+
+    [Serializable]
+    public class MonitorInfo
+    {
+        public int Index { get; set; }
+        public string DeviceName { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public bool IsPrimary { get; set; }
+    }
+
+    [Serializable]
+    public class MonitorInfoMessage : Message  // Add : Message here
+    {
+        public MonitorInfoMessage()
+        {
+            Type = "MonitorInfo";  // Add this
+        }
+
+        public List<MonitorInfo> Monitors { get; set; }
+    }
+
+    [Serializable]
+    public class SelectMonitorMessage : Message  // Add : Message here
+    {
+        public SelectMonitorMessage()
+        {
+            Type = "SelectMonitor";  // Add this
+        }
+
+        public int MonitorIndex { get; set; }
     }
 }

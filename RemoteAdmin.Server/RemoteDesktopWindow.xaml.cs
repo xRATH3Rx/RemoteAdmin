@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
@@ -14,6 +15,7 @@ namespace RemoteAdmin.Server
         private bool isStreaming = false;
         private bool mouseControlEnabled = false;
         private bool keyboardControlEnabled = false;
+        private List<MonitorInfo> availableMonitors = new List<MonitorInfo>();
 
         public RemoteDesktopWindow(ConnectedClient connectedClient)
         {
@@ -39,8 +41,24 @@ namespace RemoteAdmin.Server
         {
             try
             {
+                // FIRST: Request monitor info with Quality = 0 (just get monitors, don't start streaming)
+                var monitorRequestMessage = new StartRemoteDesktopMessage { Quality = 0, MonitorIndex = 0 };
+                await NetworkHelper.SendMessageAsync(client.Stream, monitorRequestMessage);
+
+                UpdateStatus("Requesting monitor info...", true);
+
+                // Wait a moment for monitor info to come back
+                await System.Threading.Tasks.Task.Delay(500);
+
+                // NOW start the actual streaming
                 int quality = GetQualityValue();
-                var message = new StartRemoteDesktopMessage { Quality = quality };
+                int selectedMonitor = cboMonitor.SelectedIndex >= 0 ? cboMonitor.SelectedIndex : 0;
+
+                var message = new StartRemoteDesktopMessage
+                {
+                    Quality = quality,
+                    MonitorIndex = selectedMonitor
+                };
                 await NetworkHelper.SendMessageAsync(client.Stream, message);
 
                 isStreaming = true;
@@ -108,6 +126,52 @@ namespace RemoteAdmin.Server
             catch (Exception ex)
             {
                 Console.WriteLine($"Error updating screen: {ex.Message}");
+            }
+        }
+
+        public void UpdateMonitorList(List<MonitorInfo> monitors)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                availableMonitors = monitors;
+                cboMonitor.Items.Clear();
+
+                foreach (var monitor in monitors)
+                {
+                    string displayText = monitor.IsPrimary
+                        ? $"Monitor {monitor.Index} - {monitor.Width}x{monitor.Height} (Primary)"
+                        : $"Monitor {monitor.Index} - {monitor.Width}x{monitor.Height}";
+
+                    cboMonitor.Items.Add(displayText);
+                }
+
+                if (cboMonitor.Items.Count > 0)
+                {
+                    cboMonitor.SelectedIndex = 0;
+                    cboMonitor.IsEnabled = true;
+                }
+            });
+        }
+
+        private async void cboMonitor_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (!isStreaming || cboMonitor.SelectedIndex < 0)
+                return;
+
+            try
+            {
+                var message = new SelectMonitorMessage
+                {
+                    MonitorIndex = cboMonitor.SelectedIndex
+                };
+
+                await NetworkHelper.SendMessageAsync(client.Stream, message);
+                Console.WriteLine($"Requested monitor switch to index {cboMonitor.SelectedIndex}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to switch monitor: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

