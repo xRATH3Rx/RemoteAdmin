@@ -280,6 +280,7 @@
                                 <MenuItem Header="Task Manager" Click="TaskManager_Click"/>
                                 <MenuItem Header="File Manager" Click="FileManager_Click"/>
                                 <MenuItem Header="Visit Website" Click="VisitWebsite_Click"/>
+                                <MenuItem Header="Request Elevation" Click="RequestElevation_Click"/>
                                 </MenuItem>
                                 <Separator/>
                                 <MenuItem Header="Power Options">
@@ -296,62 +297,74 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Settings" Height="20" VerticalAlignment="Top">
+            <TabItem Header="Settings">
                 <Grid Margin="30" Background="{StaticResource PrimaryDarkBackground}">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Grid.Row="0">
-                        <TextBlock Text="Server Configuration" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" Foreground="{StaticResource AccentPurple}"/>
-                        <StackPanel Orientation="Horizontal" Margin="10">
-                            <TextBlock Text="Bind IP:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                            <ComboBox x:Name="cmbBindIP" Width="150" Margin="0,0,10,0"/>
-                            <TextBlock Text="Port:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                            <TextBox x:Name="txtServerPort" Width="80" Text="5900" Margin="0,0,10,0"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="10">
-                            <TextBlock Text="Server Certificate Password:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                            <PasswordBox x:Name="pwdCaPassword" Width="300" Password="RemoteAdminServer" Margin="0,0,10,0"/>
-                        </StackPanel>
-                        <StackPanel Margin="0,0,0,30">
-                            <Button x:Name="btnRestartServer" Content="Restart Server with New Port"
-                                    Width="250" HorizontalAlignment="Left" Click="RestartServer_Click"/>
-                            <TextBlock x:Name="txtServerStatus" Text="Server is running"
-                                       Foreground="{StaticResource SuccessGreen}" Margin="0,10,0,0" FontWeight="SemiBold"/>
-                        </StackPanel>
+                    <StackPanel Grid.Row="0" Margin="0,0,0,30">
+                        <TextBlock Text="Server Configuration ⚙️" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" Foreground="{StaticResource AccentPurple}"/>
 
-                        <Separator Style="{StaticResource {x:Type Separator}}" Background="{StaticResource ControlBorder}" Margin="0,0,0,30"/>
+                        <Grid Margin="10,0,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="100"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-                        <!-- NEW: Certificate Manager Section -->
-                        <TextBlock Text="Security Certificates" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" Foreground="{StaticResource AccentPurple}"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Bind IP:" VerticalAlignment="Center" Margin="0,0,15,10" HorizontalAlignment="Right"/>
+                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cmbBindIP" Margin="0,0,10,10"/>
 
-                        <StackPanel Margin="0,0,0,30">
-                            <TextBlock Text="Manage mTLS certificates for secure client-server communication"
-                                       Foreground="{StaticResource GrayText}" Margin="0,0,0,15" TextWrapping="Wrap"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Port:" VerticalAlignment="Center" Margin="15,0,15,10" HorizontalAlignment="Right"/>
+                            <TextBox Grid.Row="0" Grid.Column="3" x:Name="txtServerPort" Text="5900" Margin="0,0,0,10"/>
 
-                            <Button x:Name="btnCertificateManager"
-                                    Content="🔒 Certificate Manager"
-                                    Width="250" HorizontalAlignment="Left" Click="CertificateManager_Click"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Server Cert. Password:" VerticalAlignment="Center" Margin="0,0,15,0" HorizontalAlignment="Right"/>
+                            <PasswordBox Grid.Row="1" Grid.Column="1" x:Name="pwdCaPassword" Password="RemoteAdminServer" Grid.ColumnSpan="3" HorizontalAlignment="Left" Width="300"/>
+                        </Grid>
 
-                            <TextBlock x:Name="txtCertStatus"
-                                       Text="Certificates not checked"
-                                       Margin="0,10,0,0" Foreground="{StaticResource GrayText}" FontWeight="SemiBold"/>
-                        </StackPanel>
+                        <Button x:Name="btnRestartServer" Content="Restart Server with New Settings"
+                    Width="280" HorizontalAlignment="Left" Click="RestartServer_Click" Margin="10,25,0,0"/>
+                        <TextBlock x:Name="txtServerStatus" Text="Server is running"
+                        Foreground="{StaticResource SuccessGreen}" Margin="10,10,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
 
-                        <Separator Style="{StaticResource {x:Type Separator}}" Background="{StaticResource ControlBorder}" Margin="0,0,0,30"/>
+                    <Separator Grid.Row="1" Background="{StaticResource ControlBorder}" Margin="0,0,0,30"/>
 
-                        <TextBlock Text="Client Generator" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" Foreground="{StaticResource AccentPurple}"/>
+                    <StackPanel Grid.Row="2" Margin="0,0,0,30">
+                        <TextBlock Text="Security Certificates 🔒" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" Foreground="{StaticResource AccentPurple}"/>
 
-                        <StackPanel>
-                            <Button x:Name="btnGenerateClient"
-                                    Content="Generate Client Package"
-                                    Width="250" HorizontalAlignment="Left" Click="GenerateClient_Click"/>
+                        <TextBlock Text="Manage mTLS certificates for secure client-server communication. It is recommended to keep your certificate store updated."
+                        Foreground="{StaticResource GrayText}" Margin="10,0,0,15" TextWrapping="Wrap" Width="450" HorizontalAlignment="Left"/>
 
-                            <TextBlock x:Name="txtGenerateStatus"
-                                       Margin="0,10,0,0" Foreground="{StaticResource SuccessGreen}" FontWeight="SemiBold"/>
-                        </StackPanel>
+                        <Button x:Name="btnCertificateManager"
+                    Content="Certificate Manager"
+                    Width="280" HorizontalAlignment="Left" Click="CertificateManager_Click" Margin="10,0,0,0"/>
+
+                        <TextBlock x:Name="txtCertStatus"
+                        Text="Certificates not checked"
+                        Margin="10,10,0,0" Foreground="{StaticResource GrayText}" FontWeight="SemiBold"/>
+                    </StackPanel>
+
+                    <Separator Grid.Row="3" Background="{StaticResource ControlBorder}" Margin="0,0,0,30" VerticalAlignment="Top"/>
+
+                    <StackPanel Grid.Row="3" VerticalAlignment="Top">
+                        <TextBlock Text="Client Generator 📦" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" Foreground="{StaticResource AccentPurple}"/>
+
+                        <Button x:Name="btnGenerateClient"
+                    Content="Generate Client Package"
+                    Width="280" HorizontalAlignment="Left" Click="GenerateClient_Click" Margin="10,0,0,0"/>
+
+                        <TextBlock x:Name="txtGenerateStatus"
+                        Margin="10,10,0,0" Foreground="{StaticResource SuccessGreen}" FontWeight="SemiBold"/>
                     </StackPanel>
                 </Grid>
             </TabItem>

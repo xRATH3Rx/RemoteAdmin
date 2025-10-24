@@ -544,4 +544,12 @@ namespace RemoteAdmin.Shared
         public RegistryOperation Operation { get; set; }
     }
 
+    public class ElevationRequestMessage : Message
+    {
+        public ElevationRequestMessage()
+        {
+            Type = "Elevate";
+        }
+    }
+
 }

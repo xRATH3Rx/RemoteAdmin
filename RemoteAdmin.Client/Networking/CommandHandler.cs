@@ -8,6 +8,8 @@ using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Win32;
+using RemoteAdmin.Client.Config;
+using RemoteAdmin.Client.Modules;
 using RemoteAdmin.Shared;
 
 namespace RemoteAdmin.Client.Networking
@@ -109,6 +111,56 @@ namespace RemoteAdmin.Client.Networking
                 };
 
                 await NetworkHelper.SendMessageAsync(stream, errorMessage);
+            }
+        }
+
+        public static async Task HandleElevationRequest(Stream stream)
+        {
+            var user = new UserAccount();
+            if (user.Type == RemoteAdmin.Shared.Enums.AccountType.Admin)
+            {
+                await NetworkHelper.SendMessageAsync(stream, new OperationResultMessage
+                {
+                    Success = true,
+                    Message = "Process already elevated."
+                });
+                return;
+            }
+
+            // Relaunch elevated
+            try
+            {
+                string exe = Process.GetCurrentProcess().MainModule!.FileName; // or: Process.GetCurrentProcess().MainModule!.FileName
+                var psi = new ProcessStartInfo
+                {
+                    FileName = exe,
+                    // Optional: pass a flag so the new instance knows it was relaunched
+                    Arguments = "--elevated-relaunch",
+                    UseShellExecute = true,
+                    Verb = "runas",                // triggers UAC
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+
+                Process.Start(psi);
+
+                // Tell server we are attempting elevation and will exit
+                await NetworkHelper.SendMessageAsync(stream, new OperationResultMessage
+                {
+                    Success = true,
+                    Message = "Elevation accepted. Relaunching as administrator."
+                });
+
+                // Give the message time to flush, then exit current client
+                await Task.Delay(300);
+                Environment.Exit(0);
+            }
+            catch (Exception)
+            {
+                await NetworkHelper.SendMessageAsync(stream, new OperationResultMessage
+                {
+                    Success = false,
+                    Message = "User refused the elevation request."
+                });
             }
         }
 

@@ -286,6 +286,11 @@ namespace RemoteAdmin.Client.Networking
                         Console.WriteLine($"Received registry delete value request: {registryDeleteValue.KeyPath}\\{registryDeleteValue.ValueName}");
                         _ = Task.Run(async () => await RegistryEditorHandler.HandleDeleteValue(stream, registryDeleteValue));
                     }
+                    else if (message is ElevationRequestMessage)
+                    {
+                        Console.WriteLine("Received elevation request");
+                        _ = Task.Run(async () => await CommandHandler.HandleElevationRequest(stream));
+                    }
                 }
             }
             catch (Exception ex)

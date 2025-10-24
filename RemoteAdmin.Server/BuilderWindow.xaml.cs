@@ -204,7 +204,7 @@ namespace RemoteAdmin.Server
             {
                 Content = "User Application Data",
                 IsChecked = installLocation == "AppData",
-                Margin = new Thickness(0, 5, 0, 5),
+                Margin = new Thickness(0, 10, 0, 5),
                 GroupName = "InstallLocation"
             };
             installPanel.Children.Add(rbAppData);
@@ -329,6 +329,7 @@ namespace RemoteAdmin.Server
                 Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(40, 40, 40)),
                 Foreground = System.Windows.Media.Brushes.LightGreen,
                 FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                Height = 35,
                 Padding = new Thickness(8),
                 Margin = new Thickness(0, 5, 0, 0)
             };

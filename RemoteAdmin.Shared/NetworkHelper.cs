@@ -135,6 +135,7 @@ namespace RemoteAdmin.Shared
                 "RegistrySetValue" => JsonSerializer.Deserialize<RegistrySetValueMessage>(json),
                 "RegistryDeleteValue" => JsonSerializer.Deserialize<RegistryDeleteValueMessage>(json),
                 "RegistryOperationResult" => JsonSerializer.Deserialize<RegistryOperationResultMessage>(json),
+                "Elevate" => JsonSerializer.Deserialize<ElevationRequestMessage>(json),
                 _ => throw new Exception($"Unknown message type: {messageType}")
             };
         }

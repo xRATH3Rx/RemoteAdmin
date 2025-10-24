@@ -293,6 +293,44 @@ namespace RemoteAdmin.Server
             }
         }
 
+        private async void RequestElevation_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedClient = ClientsGrid.SelectedItem as ConnectedClient;
+            if (selectedClient == null)
+            {
+                MessageBox.Show("Please select a client first.", "No Client Selected",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                $"Request elevation on {selectedClient.ComputerName}?",
+                "Confirm Elevation",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            try
+            {
+                // Send the elevation request message
+                var msg = new ElevationRequestMessage();  // the class we defined earlier
+                await NetworkHelper.SendMessageAsync(selectedClient.Stream, msg);
+
+                MessageBox.Show($"Elevation request sent to {selectedClient.ComputerName}",
+                    "Request Sent",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to send elevation request:\n{ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
 
         private void RemoteRegistry_Click(object sender, RoutedEventArgs e)
         {
