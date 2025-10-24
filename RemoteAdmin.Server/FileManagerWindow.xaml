@@ -126,7 +126,7 @@
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               Background="#1E1E1E"
-                              Foreground="White"
+                              Foreground="#1E1E1E"
                               RowBackground="#1E1E1E"
                               AlternatingRowBackground="#252526"
                               BorderThickness="0"

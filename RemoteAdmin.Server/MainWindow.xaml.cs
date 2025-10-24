@@ -19,8 +19,11 @@ namespace RemoteAdmin.Server
 {
     public partial class MainWindow : Window
     {
+        private ServerSettings settings;
         private ObservableCollection<ConnectedClient> clients;
+        private Networking.ClientHandler _clientHandler;
         private TcpListener listener;
+        private string l2ca= "";
         private int listenPort = 5900;
         private bool isRunning = false;
 
@@ -31,6 +34,7 @@ namespace RemoteAdmin.Server
         {
             InitializeComponent();
             clients = new ObservableCollection<ConnectedClient>();
+            _clientHandler = new Networking.ClientHandler(clients,this.Dispatcher,UpdateClientCount);
             ClientsGrid.ItemsSource = clients;
         }
 
@@ -39,10 +43,20 @@ namespace RemoteAdmin.Server
             try
             {
                 LoadAvailableIPs();
+                settings = SettingsManager.Load();
+
+                txtServerPort.Text = settings.ListenPort.ToString();
+                SelectBindIPIfAvailable(settings.BindIP);
+                pwdCaPassword.Password = SecretBox.UnprotectFromBase64(settings.EncryptedCaPassword);
+
+                listenPort = settings.ListenPort;
+                l2ca = pwdCaPassword.Password; // decrypted value
+
+
                 // Load server certificate (with private key)
                 serverCert = new X509Certificate2(
                     Path.Combine("Certificates", "server.pfx"),
-                    "RemoteAdminServer",
+                    l2ca,
                     X509KeyStorageFlags.Exportable |
                     X509KeyStorageFlags.MachineKeySet |
                     X509KeyStorageFlags.PersistKeySet);
@@ -54,6 +68,7 @@ namespace RemoteAdmin.Server
                 caCert = new X509Certificate2(
                     Path.Combine("Certificates", "ca.crt"));
 
+                CheckCertificateStatus();
                 StartServer();
             }
             catch (Exception ex)
@@ -61,6 +76,21 @@ namespace RemoteAdmin.Server
                 MessageBox.Show($"Failed to load certificates:\n{ex.Message}", "Certificate Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+
+        private void SelectBindIPIfAvailable(string ip)
+        {
+            if (string.IsNullOrWhiteSpace(ip)) { cmbBindIP.SelectedIndex = 0; return; }
+            for (int i = 0; i < cmbBindIP.Items.Count; i++)
+            {
+                if (string.Equals(cmbBindIP.Items[i]?.ToString(), ip, StringComparison.OrdinalIgnoreCase))
+                {
+                    cmbBindIP.SelectedIndex = i;
+                    return;
+                }
+            }
+            cmbBindIP.SelectedIndex = 0;
         }
 
 
@@ -119,8 +149,7 @@ namespace RemoteAdmin.Server
 
                         Console.WriteLine("Secure client connection established");
 
-                        // NOTE: pass the TLS stream here
-                        await HandleClient(tcpClient, sslStream);
+                        await _clientHandler.HandleAsync(tcpClient, sslStream);
                     }
                     catch (Exception ex)
                     {
@@ -130,135 +159,6 @@ namespace RemoteAdmin.Server
                 });
             }
         }
-
-        private async Task HandleClient(TcpClient tcpClient, Stream stream)
-        {
-            ConnectedClient? client = null;
-
-            try
-            {
-                // DO NOT call tcpClient.GetStream(); use the passed-in 'stream'
-                var message = await NetworkHelper.ReceiveMessageAsync(stream);
-
-                if (message is ClientInfoMessage clientInfo)
-                {
-                    client = new ConnectedClient
-                    {
-                        Id = Guid.NewGuid().ToString(),
-                        ComputerName = clientInfo.ComputerName,
-                        Username = clientInfo.Username,
-                        OSVersion = clientInfo.OSVersion,
-                        IPAddress = clientInfo.IPAddress,
-                        PublicIP = clientInfo.PublicIP,
-                        Status = "Online",
-                        LastSeen = DateTime.Now,
-                        Connection = tcpClient,
-                        AccountType = clientInfo.AccountType,
-                        Stream = stream
-                    };
-
-                    Dispatcher.Invoke(() =>
-                    {
-                        clients.Add(client);
-                        UpdateClientCount();
-                    });
-
-                    // Listen loop (still using the passed-in TLS stream)
-                    while (tcpClient.Connected)
-                    {
-                        var msg = await NetworkHelper.ReceiveMessageAsync(stream);
-                        if (msg == null)
-                            break;
-
-                        if (msg is HeartbeatMessage)
-                        {
-                            Dispatcher.Invoke(() => client.LastSeen = DateTime.Now);
-                        }
-                        else if (msg is ShellOutputMessage shellOutput)
-                        {
-                            Dispatcher.Invoke(() => client.ShellWindow?.AppendOutput(shellOutput.Output));
-                        }
-                        else if (msg is ProcessListResponseMessage processListResponse)
-                        {
-                            Dispatcher.Invoke(() => client.TaskManagerWindow?.UpdateProcessList(processListResponse.Processes));
-                        }
-                        else if (msg is ServiceListResponseMessage serviceListResponse)
-                        {
-                            Dispatcher.Invoke(() => client.TaskManagerWindow?.UpdateServiceList(serviceListResponse.Services));
-                        }
-                        else if (msg is OperationResultMessage operationResult)
-                        {
-                            Dispatcher.Invoke(() =>
-                            {
-                                if (!operationResult.Success)
-                                {
-                                    MessageBox.Show(operationResult.Message, "Operation Failed",
-                                        MessageBoxButton.OK, MessageBoxImage.Error);
-                                }
-                            });
-                        }
-                        else if (msg is DirectoryListResponseMessage dirResponse)
-                        {
-                            Dispatcher.Invoke(() => client.FileManagerWindow?.UpdateDirectoryListing(dirResponse));
-                        }
-                        else if (msg is FileChunkMessage fileChunk)
-                        {
-                            Dispatcher.Invoke(() => client.FileManagerWindow?.HandleFileChunk(fileChunk));
-                        }
-                        else if (msg is ScreenFrameMessage screenFrame)
-                        {
-                            Dispatcher.Invoke(() => client.RemoteDesktopWindow?.UpdateScreen(
-                                screenFrame.ImageData, screenFrame.Width, screenFrame.Height));
-                        }
-                        else if (msg is WebsiteVisitResultMessage websiteResult)
-                        {
-                            Dispatcher.Invoke(() =>
-                            {
-                                string icon = websiteResult.Success ? "✓" : "✗";
-                                string title = websiteResult.Success ? "Success" : "Failed";
-                                MessageBox.Show(
-                                    $"{icon} {websiteResult.Message}\n\nURL: {websiteResult.Url}",
-                                    $"Website Visit {title}",
-                                    MessageBoxButton.OK,
-                                    websiteResult.Success ? MessageBoxImage.Information : MessageBoxImage.Error);
-                            });
-                        }
-                        else if (msg is MonitorInfoMessage monitorInfo)
-                        {
-                            Console.WriteLine($"Received monitor info: {monitorInfo.Monitors.Count} monitors");
-
-                            // Update the RemoteDesktopWindow if it's open for this client
-                            Dispatcher.Invoke(() =>
-                            {
-                                if (client.RemoteDesktopWindow != null)
-                                {
-                                    client.RemoteDesktopWindow.UpdateMonitorList(monitorInfo.Monitors);
-                                }
-                            });
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Client handler error: {ex.Message}");
-            }
-            finally
-            {
-                if (client != null)
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        client.Status = "Offline";
-                        clients.Remove(client);
-                        UpdateClientCount();
-                    });
-                }
-                try { stream?.Dispose(); } catch { }
-                try { tcpClient?.Close(); } catch { }
-            }
-        }
-
 
         private void UpdateClientCount()
         {
@@ -271,31 +171,52 @@ namespace RemoteAdmin.Server
             {
                 if (!int.TryParse(txtServerPort.Text, out int newPort))
                 {
-                    MessageBox.Show("Please enter a valid port number", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Please enter a valid port number", "Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
+
+                // Save settings from UI before restart
+                SaveSettingsFromUI();
 
                 // Stop current server
                 isRunning = false;
                 listener?.Stop();
 
-                // Disconnect all clients
                 foreach (var client in clients.ToList())
-                {
                     client.Connection?.Close();
-                }
                 clients.Clear();
 
-                // Start with new port
-                listenPort = newPort;
+                // Apply new port & start
+                listenPort = settings.ListenPort; // SaveSettingsFromUI put it there
                 StartServer();
 
-                MessageBox.Show($"Server restarted on port {listenPort}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show($"Server restarted on port {listenPort}", "Success",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error restarting server: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error restarting server: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void SaveSettingsFromUI()
+        {
+            settings ??= new ServerSettings();
+
+            settings.BindIP = cmbBindIP.SelectedItem?.ToString() ?? "127.0.0.1";
+
+            if (int.TryParse(txtServerPort.Text, out var port))
+                settings.ListenPort = port;
+
+            // Encrypt the CA password before storing
+            settings.EncryptedCaPassword = SecretBox.ProtectToBase64(pwdCaPassword.Password);
+
+            // Optional: bind to a checkbox if you add one to XAML
+            // settings.AutoStart = chkAutoStart.IsChecked == true;
+
+            SettingsManager.Save(settings);
         }
 
         private void GenerateClient_Click(object sender, RoutedEventArgs e)
@@ -322,7 +243,7 @@ namespace RemoteAdmin.Server
                 if (System.IO.File.Exists(certPath))
                 {
                     var cert = new System.Security.Cryptography.X509Certificates.X509Certificate2(
-                        certPath, "RemoteAdminServer",
+                        certPath, l2ca,
                         System.Security.Cryptography.X509Certificates.X509KeyStorageFlags.Exportable);
 
                     if (cert.NotAfter < DateTime.Now)
@@ -369,6 +290,34 @@ namespace RemoteAdmin.Server
                     selectedClient.RemoteDesktopWindow = desktopWindow;
                     desktopWindow.Show();
                 }
+            }
+        }
+
+
+        private void RemoteRegistry_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedClient = ClientsGrid.SelectedItem as ConnectedClient;
+            if (selectedClient != null)
+            {
+                // Check if registry editor window is already open for this client
+                if (selectedClient.Registryeditorwindow != null && selectedClient.Registryeditorwindow.IsLoaded)
+                {
+                    selectedClient.Registryeditorwindow.Activate();
+                }
+                else
+                {
+                    // Create new registry editor window
+                    var registryWindow = new RegistryEditorWindow(selectedClient);
+                    registryWindow.Show();
+                }
+            }
+            else
+            {
+                MessageBox.Show(
+                    "Please select a client first.",
+                    "No Client Selected",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             }
         }
 

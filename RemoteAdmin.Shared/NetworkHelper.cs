@@ -127,6 +127,14 @@ namespace RemoteAdmin.Shared
                 "WebsiteVisitResult" => JsonSerializer.Deserialize<WebsiteVisitResultMessage>(json),
                 "MonitorInfo" => JsonSerializer.Deserialize<MonitorInfoMessage>(json),
                 "SelectMonitor" => JsonSerializer.Deserialize<SelectMonitorMessage>(json),
+                "OpenRegistryEditor" => JsonSerializer.Deserialize<OpenRegistryEditorMessage>(json),
+                "RegistryEnumerate" => JsonSerializer.Deserialize<RegistryEnumerateMessage>(json),
+                "RegistryData" => JsonSerializer.Deserialize<RegistryDataMessage>(json),
+                "RegistryCreateKey" => JsonSerializer.Deserialize<RegistryCreateKeyMessage>(json),
+                "RegistryDeleteKey" => JsonSerializer.Deserialize<RegistryDeleteKeyMessage>(json),
+                "RegistrySetValue" => JsonSerializer.Deserialize<RegistrySetValueMessage>(json),
+                "RegistryDeleteValue" => JsonSerializer.Deserialize<RegistryDeleteValueMessage>(json),
+                "RegistryOperationResult" => JsonSerializer.Deserialize<RegistryOperationResultMessage>(json),
                 _ => throw new Exception($"Unknown message type: {messageType}")
             };
         }

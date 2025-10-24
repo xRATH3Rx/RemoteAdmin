@@ -9,6 +9,7 @@ namespace RemoteAdmin.Server
     {
         private string _status;
         private DateTime _lastSeen;
+        public RegistryEditorWindow RegistryEditorWindow { get; set; }
 
         public string Id { get; set; }
         public string ComputerName { get; set; }
@@ -48,6 +49,7 @@ namespace RemoteAdmin.Server
         public FileManagerWindow? FileManagerWindow { get; set; }
 
         public RemoteDesktopWindow? RemoteDesktopWindow { get; set; }
+        public RegistryEditorWindow Registryeditorwindow { get; set; }
 
         public event PropertyChangedEventHandler PropertyChanged;
 

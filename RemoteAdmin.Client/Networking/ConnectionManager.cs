@@ -5,15 +5,16 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using RemoteAdmin.Client.Config;
+using RemoteAdmin.Client.Handlers;
 using RemoteAdmin.Client.Modules;
 using RemoteAdmin.Shared;
-using System.Net.Security;
 
 
 namespace RemoteAdmin.Client.Networking
@@ -254,6 +255,36 @@ namespace RemoteAdmin.Client.Networking
                     {
                         Console.WriteLine($"Received select monitor request: Monitor {selectMonitor.MonitorIndex}");
                         RemoteDesktopHandler.HandleSelectMonitor(selectMonitor);
+                    }
+                    else if (message is OpenRegistryEditorMessage)
+                    {
+                        Console.WriteLine("Received open registry editor request");
+                        _ = Task.Run(async () => await RegistryEditorHandler.HandleOpenRegistryEditor(stream));
+                    }
+                    else if (message is RegistryEnumerateMessage registryEnumerate)
+                    {
+                        Console.WriteLine($"Received registry enumerate request: {registryEnumerate.KeyPath}");
+                        _ = Task.Run(async () => await RegistryEditorHandler.HandleEnumerateRegistry(stream, registryEnumerate));
+                    }
+                    else if (message is RegistryCreateKeyMessage registryCreateKey)
+                    {
+                        Console.WriteLine($"Received registry create key request: {registryCreateKey.ParentPath}\\{registryCreateKey.KeyName}");
+                        _ = Task.Run(async () => await RegistryEditorHandler.HandleCreateKey(stream, registryCreateKey));
+                    }
+                    else if (message is RegistryDeleteKeyMessage registryDeleteKey)
+                    {
+                        Console.WriteLine($"Received registry delete key request: {registryDeleteKey.KeyPath}");
+                        _ = Task.Run(async () => await RegistryEditorHandler.HandleDeleteKey(stream, registryDeleteKey));
+                    }
+                    else if (message is RegistrySetValueMessage registrySetValue)
+                    {
+                        Console.WriteLine($"Received registry set value request: {registrySetValue.KeyPath}\\{registrySetValue.ValueName}");
+                        _ = Task.Run(async () => await RegistryEditorHandler.HandleSetValue(stream, registrySetValue));
+                    }
+                    else if (message is RegistryDeleteValueMessage registryDeleteValue)
+                    {
+                        Console.WriteLine($"Received registry delete value request: {registryDeleteValue.KeyPath}\\{registryDeleteValue.ValueName}");
+                        _ = Task.Run(async () => await RegistryEditorHandler.HandleDeleteValue(stream, registryDeleteValue));
                     }
                 }
             }

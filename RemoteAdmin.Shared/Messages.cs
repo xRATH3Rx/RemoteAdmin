@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using RemoteAdmin.Shared.Enums;
 
 namespace RemoteAdmin.Shared
 {
@@ -398,4 +399,149 @@ namespace RemoteAdmin.Shared
 
         public int MonitorIndex { get; set; }
     }
+    // Request to open registry editor
+    [Serializable]
+    public class OpenRegistryEditorMessage : Message
+    {
+        public OpenRegistryEditorMessage()
+        {
+            Type = "OpenRegistryEditor";
+        }
+    }
+
+    // Request to enumerate registry keys
+    [Serializable]
+    public class RegistryEnumerateMessage : Message
+    {
+        public RegistryEnumerateMessage()
+        {
+            Type = "RegistryEnumerate";
+        }
+
+        public string KeyPath { get; set; } // e.g., "HKEY_LOCAL_MACHINE\\Software"
+    }
+
+    // Response with registry keys and values
+    [Serializable]
+    public class RegistryDataMessage : Message
+    {
+        public RegistryDataMessage()
+        {
+            Type = "RegistryData";
+        }
+
+        public string CurrentPath { get; set; }
+        public List<RegistryKeyInfo> SubKeys { get; set; }
+        public List<RegistryValueInfo> Values { get; set; }
+        public bool Success { get; set; }
+        public string ErrorMessage { get; set; }
+    }
+
+    [Serializable]
+    public class RegistryKeyInfo
+    {
+        public string Name { get; set; }
+        public int SubKeyCount { get; set; }
+        public int ValueCount { get; set; }
+    }
+
+    [Serializable]
+    public class RegistryValueInfo
+    {
+        public string Name { get; set; }
+        public RegistryValueType ValueType { get; set; }
+        public object Data { get; set; }
+
+        // Helper property for display purposes
+        public string Type => GetRegistryTypeString(ValueType);
+
+        private string GetRegistryTypeString(RegistryValueType type)
+        {
+            switch (type)
+            {
+                case RegistryValueType.String:
+                    return "REG_SZ";
+                case RegistryValueType.ExpandString:
+                    return "REG_EXPAND_SZ";
+                case RegistryValueType.Binary:
+                    return "REG_BINARY";
+                case RegistryValueType.DWord:
+                    return "REG_DWORD";
+                case RegistryValueType.MultiString:
+                    return "REG_MULTI_SZ";
+                case RegistryValueType.QWord:
+                    return "REG_QWORD";
+                default:
+                    return "REG_UNKNOWN";
+            }
+        }
+    }
+
+    // Create a new registry key
+    [Serializable]
+    public class RegistryCreateKeyMessage : Message
+    {
+        public RegistryCreateKeyMessage()
+        {
+            Type = "RegistryCreateKey";
+        }
+
+        public string ParentPath { get; set; }
+        public string KeyName { get; set; }
+    }
+
+    // Delete a registry key
+    [Serializable]
+    public class RegistryDeleteKeyMessage : Message
+    {
+        public RegistryDeleteKeyMessage()
+        {
+            Type = "RegistryDeleteKey";
+        }
+
+        public string KeyPath { get; set; }
+    }
+
+    // Create or modify a registry value
+    [Serializable]
+    public class RegistrySetValueMessage : Message
+    {
+        public RegistrySetValueMessage()
+        {
+            Type = "RegistrySetValue";
+        }
+
+        public string KeyPath { get; set; }
+        public string ValueName { get; set; }
+        public RegistryValueType ValueType { get; set; }
+        public object ValueData { get; set; }
+    }
+
+    // Delete a registry value
+    [Serializable]
+    public class RegistryDeleteValueMessage : Message
+    {
+        public RegistryDeleteValueMessage()
+        {
+            Type = "RegistryDeleteValue";
+        }
+
+        public string KeyPath { get; set; }
+        public string ValueName { get; set; }
+    }
+
+    // Response for registry operations (create, delete, set)
+    [Serializable]
+    public class RegistryOperationResultMessage : Message
+    {
+        public RegistryOperationResultMessage()
+        {
+            Type = "RegistryOperationResult";
+        }
+
+        public bool Success { get; set; }
+        public string ErrorMessage { get; set; }
+        public RegistryOperation Operation { get; set; }
+    }
+
 }
