@@ -145,7 +145,7 @@ namespace RemoteAdmin.Client.Networking
             return true;
         }
 
-        public static async Task ListenForMessages(Stream stream)
+        public static async Task ListenForMessages(SslStream stream)
         {
             try
             {

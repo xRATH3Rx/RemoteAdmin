@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Windows.Threading;
@@ -25,7 +26,7 @@ namespace RemoteAdmin.Server.Networking
             _updateClientCount = updateClientCount;
         }
 
-        public async Task HandleAsync(TcpClient tcpClient, Stream stream)
+        public async Task HandleAsync(TcpClient tcpClient, SslStream stream)
         {
             ConnectedClient? client = null;
 

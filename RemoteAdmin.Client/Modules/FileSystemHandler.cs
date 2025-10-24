@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,7 +13,7 @@ namespace RemoteAdmin.Client.Modules
     internal class FileSystemHandler
     {
         public static Dictionary<string, string> activeUploads = new Dictionary<string, string>();
-        public static async Task HandleDirectoryListRequest(Stream stream, DirectoryListRequestMessage request)
+        public static async Task HandleDirectoryListRequest(SslStream stream, DirectoryListRequestMessage request)
         {
             try
             {
@@ -77,7 +78,7 @@ namespace RemoteAdmin.Client.Modules
             }
         }
 
-        public static async Task HandleDownloadRequest(Stream stream, DownloadFileRequestMessage request)
+        public static async Task HandleDownloadRequest(SslStream stream, DownloadFileRequestMessage request)
         {
             try
             {
@@ -111,7 +112,7 @@ namespace RemoteAdmin.Client.Modules
             }
         }
 
-        public static async Task HandleFileChunk(Stream stream, FileChunkMessage chunk)
+        public static async Task HandleFileChunk(SslStream stream, FileChunkMessage chunk)
         {
             try
             {
@@ -153,7 +154,7 @@ namespace RemoteAdmin.Client.Modules
             }
         }
 
-        public static async Task HandleDeleteFile(Stream stream, DeleteFileMessage deleteMsg)
+        public static async Task HandleDeleteFile(SslStream stream, DeleteFileMessage deleteMsg)
         {
             try
             {
@@ -186,7 +187,7 @@ namespace RemoteAdmin.Client.Modules
             }
         }
 
-        public static async Task HandleRenameFile(Stream stream, RenameFileMessage renameMsg)
+        public static async Task HandleRenameFile(SslStream stream, RenameFileMessage renameMsg)
         {
             try
             {
@@ -222,7 +223,7 @@ namespace RemoteAdmin.Client.Modules
             }
         }
 
-        public static async Task HandleCreateDirectory(Stream stream, CreateDirectoryMessage createMsg)
+        public static async Task HandleCreateDirectory(SslStream stream, CreateDirectoryMessage createMsg)
         {
             try
             {

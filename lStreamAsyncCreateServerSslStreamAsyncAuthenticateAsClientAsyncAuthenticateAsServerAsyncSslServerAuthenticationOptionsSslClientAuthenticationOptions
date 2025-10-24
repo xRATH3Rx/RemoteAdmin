@@ -1,0 +1,66 @@
+[35mRemoteAdmin.Client/Modules/FileSystemHandler.cs[m[36m:[m[32m61[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Modules/FileSystemHandler.cs[m[36m:[m[32m76[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Modules/FileSystemHandler.cs[m[36m:[m[32m103[m[36m:[m                    await NetworkHelper.[1;31mSendMessageAsync[m(stream, chunkMsg);
+[35mRemoteAdmin.Client/Modules/FileSystemHandler.cs[m[36m:[m[32m140[m[36m:[m                    await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Modules/FileSystemHandler.cs[m[36m:[m[32m152[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Modules/FileSystemHandler.cs[m[36m:[m[32m174[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Modules/FileSystemHandler.cs[m[36m:[m[32m185[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Modules/FileSystemHandler.cs[m[36m:[m[32m210[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Modules/FileSystemHandler.cs[m[36m:[m[32m221[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Modules/FileSystemHandler.cs[m[36m:[m[32m236[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Modules/FileSystemHandler.cs[m[36m:[m[32m247[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Modules/Registryeditorhandler .cs[m[36m:[m[32m37[m[36m:[m            await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Modules/Registryeditorhandler .cs[m[36m:[m[32m47[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, result);
+[35mRemoteAdmin.Client/Modules/Registryeditorhandler .cs[m[36m:[m[32m520[m[36m:[m            await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Modules/Registryeditorhandler .cs[m[36m:[m[32m532[m[36m:[m            await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Modules/RemoteDesktopHandler.cs[m[36m:[m[32m320[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, monitorInfo);
+[35mRemoteAdmin.Client/Modules/RemoteDesktopHandler.cs[m[36m:[m[32m418[m[36m:[m                            NetworkHelper.[1;31mSendMessageAsync[m(stream, frameMessage).Wait();
+[35mRemoteAdmin.Client/Modules/WebsiteVisitorHandler.cs[m[36m:[m[32m34[m[36m:[m                    await NetworkHelper.[1;31mSendMessageAsync[m(stream, errorResponse);
+[35mRemoteAdmin.Client/Modules/WebsiteVisitorHandler.cs[m[36m:[m[32m55[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, successResponse);
+[35mRemoteAdmin.Client/Modules/WebsiteVisitorHandler.cs[m[36m:[m[32m69[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, errorResponse);
+[35mRemoteAdmin.Client/Networking/CommandHandler.cs[m[36m:[m[32m100[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, outputMessage);
+[35mRemoteAdmin.Client/Networking/CommandHandler.cs[m[36m:[m[32m113[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, errorMessage);
+[35mRemoteAdmin.Client/Networking/CommandHandler.cs[m[36m:[m[32m122[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, new OperationResultMessage
+[35mRemoteAdmin.Client/Networking/CommandHandler.cs[m[36m:[m[32m147[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, new OperationResultMessage
+[35mRemoteAdmin.Client/Networking/CommandHandler.cs[m[36m:[m[32m159[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, new OperationResultMessage
+[35mRemoteAdmin.Client/Networking/CommandHandler.cs[m[36m:[m[32m189[m[36m:[m                    await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Networking/CommandHandler.cs[m[36m:[m[32m201[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Networking/CommandHandler.cs[m[36m:[m[32m232[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Networking/CommandHandler.cs[m[36m:[m[32m254[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Networking/CommandHandler.cs[m[36m:[m[32m265[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Networking/CommandHandler.cs[m[36m:[m[32m296[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Networking/CommandHandler.cs[m[36m:[m[32m368[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Networking/CommandHandler.cs[m[36m:[m[32m379[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(stream, response);
+[35mRemoteAdmin.Client/Networking/ConnectionManager.cs[m[36m:[m[32m72[m[36m:[m                        await NetworkHelper.[1;31mSendMessageAsync[m(sslStream, clientInfo);
+[35mRemoteAdmin.Client/Networking/ConnectionManager.cs[m[36m:[m[32m83[m[36m:[m                                await NetworkHelper.[1;31mSendMessageAsync[m(sslStream, new HeartbeatMessage());
+[35mRemoteAdmin.Client/Networking/ConnectionManager.cs[m[36m:[m[32m154[m[36m:[m                    var message = await NetworkHelper.[1;31mReceiveMessageAsync[m(stream);
+[35mRemoteAdmin.Server/FileManagerWindow.xaml.cs[m[36m:[m[32m54[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, request);
+[35mRemoteAdmin.Server/FileManagerWindow.xaml.cs[m[36m:[m[32m214[m[36m:[m                    await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, request);
+[35mRemoteAdmin.Server/FileManagerWindow.xaml.cs[m[36m:[m[32m252[m[36m:[m                    await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, startMsg);
+[35mRemoteAdmin.Server/FileManagerWindow.xaml.cs[m[36m:[m[32m273[m[36m:[m                        await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, chunkMsg);
+[35mRemoteAdmin.Server/FileManagerWindow.xaml.cs[m[36m:[m[32m305[m[36m:[m                    await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, msg);
+[35mRemoteAdmin.Server/FileManagerWindow.xaml.cs[m[36m:[m[32m346[m[36m:[m                        await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, msg);
+[35mRemoteAdmin.Server/FileManagerWindow.xaml.cs[m[36m:[m[32m387[m[36m:[m                        await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, msg);
+[35mRemoteAdmin.Server/MainWindow.xaml.cs[m[36m:[m[32m318[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(selectedClient.Stream, msg);
+[35mRemoteAdmin.Server/MainWindow.xaml.cs[m[36m:[m[32m442[m[36m:[m                        await NetworkHelper.[1;31mSendMessageAsync[m(selectedClient.Stream, powerMsg);
+[35mRemoteAdmin.Server/MainWindow.xaml.cs[m[36m:[m[32m576[m[36m:[m                    await NetworkHelper.[1;31mSendMessageAsync[m(selectedClient.Stream, visitMsg);
+[35mRemoteAdmin.Server/Networking/ClientHandler.cs[m[36m:[m[32m34[m[36m:[m                var message = await NetworkHelper.[1;31mReceiveMessageAsync[m(stream);
+[35mRemoteAdmin.Server/Networking/ClientHandler.cs[m[36m:[m[32m61[m[36m:[m                        var msg = await NetworkHelper.[1;31mReceiveMessageAsync[m(stream);
+[35mRemoteAdmin.Server/Registryeditorwindow.xaml.cs[m[36m:[m[32m111[m[36m:[m                    await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, message);
+[35mRemoteAdmin.Server/RemoteDesktopWindow.xaml.cs[m[36m:[m[32m46[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, monitorRequestMessage);
+[35mRemoteAdmin.Server/RemoteDesktopWindow.xaml.cs[m[36m:[m[32m62[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, message);
+[35mRemoteAdmin.Server/RemoteDesktopWindow.xaml.cs[m[36m:[m[32m83[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, message);
+[35mRemoteAdmin.Server/RemoteDesktopWindow.xaml.cs[m[36m:[m[32m168[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, message);
+[35mRemoteAdmin.Server/RemoteDesktopWindow.xaml.cs[m[36m:[m[32m305[m[36m:[m            await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, message);
+[35mRemoteAdmin.Server/RemoteDesktopWindow.xaml.cs[m[36m:[m[32m332[m[36m:[m            await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, message);
+[35mRemoteAdmin.Server/RemoteDesktopWindow.xaml.cs[m[36m:[m[32m351[m[36m:[m            await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, message);
+[35mRemoteAdmin.Server/RemoteDesktopWindow.xaml.cs[m[36m:[m[32m364[m[36m:[m            await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, message);
+[35mRemoteAdmin.Server/RemoteDesktopWindow.xaml.cs[m[36m:[m[32m381[m[36m:[m            await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, message);
+[35mRemoteAdmin.Server/RemoteDesktopWindow.xaml.cs[m[36m:[m[32m398[m[36m:[m            await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, message);
+[35mRemoteAdmin.Server/ShellWindow.xaml.cs[m[36m:[m[32m101[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, cmdMessage);
+[35mRemoteAdmin.Server/TaskManagerWindow.xaml.cs[m[36m:[m[32m48[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, new ProcessListRequestMessage());
+[35mRemoteAdmin.Server/TaskManagerWindow.xaml.cs[m[36m:[m[32m52[m[36m:[m                await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, new ServiceListRequestMessage());
+[35mRemoteAdmin.Server/TaskManagerWindow.xaml.cs[m[36m:[m[32m126[m[36m:[m                        await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, killMsg);
+[35mRemoteAdmin.Server/TaskManagerWindow.xaml.cs[m[36m:[m[32m178[m[36m:[m                        await NetworkHelper.[1;31mSendMessageAsync[m(client.Stream, controlMsg);
+[35mRemoteAdmin.Shared/NetworkHelper.cs[m[36m:[m[32m16[m[36m:[m        public static async Task [1;31mSendMessageAsync[m(Stream stream, object message)
+[35mRemoteAdmin.Shared/NetworkHelper.cs[m[36m:[m[32m41[m[36m:[m        public static async Task<object> [1;31mReceiveMessageAsync[m(Stream stream)

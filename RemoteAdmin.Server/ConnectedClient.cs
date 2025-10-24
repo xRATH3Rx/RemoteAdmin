@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.IO;
+using System.Net.Security;
 using System.Net.Sockets;
 
 namespace RemoteAdmin.Server
@@ -42,7 +43,7 @@ namespace RemoteAdmin.Server
         public string LastSeenFormatted => LastSeen.ToString("HH:mm:ss");
         public string AccountType { get; set; }
         public TcpClient? Connection { get; set; }
-        public Stream? Stream { get; set; }
+        public SslStream? Stream { get; set; }
 
         public ShellWindow? ShellWindow { get; set; }
         public TaskManagerWindow? TaskManagerWindow { get; set; }

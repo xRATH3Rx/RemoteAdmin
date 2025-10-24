@@ -13,7 +13,7 @@ namespace RemoteAdmin.Shared
     {
         private const int HeaderSize = 4;
 
-        public static async Task SendMessageAsync(Stream stream, object message)
+        public static async Task SendMessageAsync(SslStream stream, object message)
         {
             try
             {
@@ -38,7 +38,7 @@ namespace RemoteAdmin.Shared
         }
 
 
-        public static async Task<object> ReceiveMessageAsync(Stream stream)
+        public static async Task<object> ReceiveMessageAsync(SslStream stream)
         {
             try
             {

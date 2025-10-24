@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Net.Security;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Threading;
@@ -299,7 +300,7 @@ namespace RemoteAdmin.Client.Modules
             return result;
         }
 
-        public static async Task HandleStartRemoteDesktop(StartRemoteDesktopMessage message, Stream stream)
+        public static async Task HandleStartRemoteDesktop(StartRemoteDesktopMessage message, SslStream stream)
         {
             ArgumentNullException.ThrowIfNull(message);
             ArgumentNullException.ThrowIfNull(stream);
@@ -393,7 +394,7 @@ namespace RemoteAdmin.Client.Modules
             Console.WriteLine("Stopped desktop streaming");
         }
 
-        public static void StreamDesktop(Stream stream, int quality, int monitorIndex)
+        public static void StreamDesktop(SslStream stream, int quality, int monitorIndex)
         {
             try
             {

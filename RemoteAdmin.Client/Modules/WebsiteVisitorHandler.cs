@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Security;
 using System.Threading.Tasks;
 using RemoteAdmin.Shared;
 
@@ -9,7 +10,7 @@ namespace RemoteAdmin.Client.Networking
 {
     internal class WebsiteVisitorHandler
     {
-        public static async Task HandleVisitWebsite(Stream stream, VisitWebsiteMessage message)
+        public static async Task HandleVisitWebsite(SslStream stream, VisitWebsiteMessage message)
         {
             try
             {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.ServiceProcess;
 using System.Text;
@@ -17,7 +18,7 @@ namespace RemoteAdmin.Client.Networking
     internal class CommandHandler
     {
 
-       public static async Task HandleShellCommand(Stream stream, string command, string shellType)
+       public static async Task HandleShellCommand(SslStream stream, string command, string shellType)
         {
             try
             {
@@ -114,7 +115,7 @@ namespace RemoteAdmin.Client.Networking
             }
         }
 
-        public static async Task HandleElevationRequest(Stream stream)
+        public static async Task HandleElevationRequest(SslStream stream)
         {
             var user = new UserAccount();
             if (user.Type == RemoteAdmin.Shared.Enums.AccountType.Admin)
@@ -164,7 +165,7 @@ namespace RemoteAdmin.Client.Networking
             }
         }
 
-        public static async Task HandlePowerCommand(Stream stream, string command)
+        public static async Task HandlePowerCommand(SslStream stream, string command)
         {
             try
             {
@@ -202,7 +203,7 @@ namespace RemoteAdmin.Client.Networking
             }
         }
 
-        public static async Task HandleProcessListRequest(Stream stream)
+        public static async Task HandleProcessListRequest(SslStream stream)
         {
             try
             {
@@ -238,7 +239,7 @@ namespace RemoteAdmin.Client.Networking
             }
         }
 
-        public static async Task HandleKillProcess(Stream stream, KillProcessMessage killMsg)
+        public static async Task HandleKillProcess(SslStream stream, KillProcessMessage killMsg)
         {
             try
             {
@@ -266,7 +267,7 @@ namespace RemoteAdmin.Client.Networking
             }
         }
 
-        public static async Task HandleServiceListRequest(Stream stream)
+        public static async Task HandleServiceListRequest(SslStream stream)
         {
             try
             {
@@ -325,7 +326,7 @@ namespace RemoteAdmin.Client.Networking
             return "Unknown";
         }
 
-        public static async Task HandleServiceControl(Stream stream, ServiceControlMessage serviceMsg)
+        public static async Task HandleServiceControl(SslStream stream, ServiceControlMessage serviceMsg)
         {
             try
             {

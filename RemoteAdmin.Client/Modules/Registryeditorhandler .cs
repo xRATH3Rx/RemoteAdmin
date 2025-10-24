@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Security;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 using RemoteAdmin.Client.Networking;
@@ -14,7 +15,7 @@ namespace RemoteAdmin.Client.Handlers
     {
         private const int MAX_SUBKEYS_LIMIT = 5000; // Safety limit to prevent memory issues
 
-        public static async Task HandleOpenRegistryEditor(Stream stream)
+        public static async Task HandleOpenRegistryEditor(SslStream stream)
         {
             // Send initial registry data with root keys
             var rootKeys = new List<RegistryKeyInfo>
@@ -37,7 +38,7 @@ namespace RemoteAdmin.Client.Handlers
             await NetworkHelper.SendMessageAsync(stream, response);
         }
 
-        public static async Task HandleEnumerateRegistry(Stream stream, RegistryEnumerateMessage message)
+        public static async Task HandleEnumerateRegistry(SslStream stream, RegistryEnumerateMessage message)
         {
             try
             {
@@ -213,7 +214,7 @@ namespace RemoteAdmin.Client.Handlers
             }
         }
 
-        public static async Task HandleCreateKey(Stream stream, RegistryCreateKeyMessage message)
+        public static async Task HandleCreateKey(SslStream stream, RegistryCreateKeyMessage message)
         {
             try
             {
@@ -237,7 +238,7 @@ namespace RemoteAdmin.Client.Handlers
             }
         }
 
-        public static async Task HandleDeleteKey(Stream stream, RegistryDeleteKeyMessage message)
+        public static async Task HandleDeleteKey(SslStream stream, RegistryDeleteKeyMessage message)
         {
             try
             {
@@ -264,7 +265,7 @@ namespace RemoteAdmin.Client.Handlers
             }
         }
 
-        public static async Task HandleSetValue(Stream stream, RegistrySetValueMessage message)
+        public static async Task HandleSetValue(SslStream stream, RegistrySetValueMessage message)
         {
             try
             {
@@ -291,7 +292,7 @@ namespace RemoteAdmin.Client.Handlers
             }
         }
 
-        public static async Task HandleDeleteValue(Stream stream, RegistryDeleteValueMessage message)
+        public static async Task HandleDeleteValue(SslStream stream, RegistryDeleteValueMessage message)
         {
             try
             {
@@ -506,7 +507,7 @@ namespace RemoteAdmin.Client.Handlers
             return lastSeparator >= 0 ? fullPath.Substring(lastSeparator + 1) : fullPath;
         }
 
-        private static async Task SendError(Stream stream, string path, string errorMessage)
+        private static async Task SendError(SslStream stream, string path, string errorMessage)
         {
             var response = new RegistryDataMessage
             {
@@ -520,7 +521,7 @@ namespace RemoteAdmin.Client.Handlers
             await NetworkHelper.SendMessageAsync(stream, response);
         }
 
-        private static async Task SendOperationResult(Stream stream, bool success, RegistryOperation operation, string errorMessage = null)
+        private static async Task SendOperationResult(SslStream stream, bool success, RegistryOperation operation, string errorMessage = null)
         {
             var response = new RegistryOperationResultMessage
             {
