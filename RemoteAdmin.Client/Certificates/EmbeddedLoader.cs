@@ -16,12 +16,8 @@ namespace RemoteAdmin.Client.Certificates
             pfxBase64 = pfxBase64.TrimEnd('\0');
             pfxPassword = pfxPassword.TrimEnd('\0');
 
-            // DIAGNOSTIC OUTPUT
-            Console.WriteLine($"[DEBUG] PFX Password length: {pfxPassword.Length}");
-            Console.WriteLine($"[DEBUG] PFX Password: '{pfxPassword}'");
             Console.WriteLine($"[DEBUG] PFX Base64 length: {pfxBase64.Length}");
-            Console.WriteLine($"[DEBUG] PFX Base64 first 100 chars: {pfxBase64.Substring(0, Math.Min(100, pfxBase64.Length))}");
-            Console.WriteLine($"[DEBUG] PFX Base64 last 100 chars: {pfxBase64.Substring(Math.Max(0, pfxBase64.Length - 100))}");
+            Console.WriteLine($"[DEBUG] PFX Base64 preview: {pfxBase64[..Math.Min(8, pfxBase64.Length)]}... (truncated)");
 
             try
             {

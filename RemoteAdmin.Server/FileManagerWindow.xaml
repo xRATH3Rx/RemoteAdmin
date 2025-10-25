@@ -2,7 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="File Manager" Height="600" Width="1000"
-        Closed="Window_Closed">
+        Closed="Window_Closed"
+        Background="#1E1E1E">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -108,8 +109,9 @@
             </Border>
 
             <!-- Files -->
-            <Border Grid.Column="1" BorderBrush="#3F3F46" BorderThickness="1" Margin="5,0,0,0">
+            <Border Grid.Column="1" BorderBrush="#3F3F46" Background="#1E1E1E" BorderThickness="1" Margin="5,0,0,0">
                 <Grid>
+                    
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -126,7 +128,8 @@
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               Background="#1E1E1E"
-                              Foreground="#1E1E1E"
+                              Foreground="White"
+                              BorderBrush="#3F3F46"
                               RowBackground="#1E1E1E"
                               AlternatingRowBackground="#252526"
                               BorderThickness="0"
@@ -145,6 +148,32 @@
                                 <MenuItem Header="Rename" Click="Rename_Click"/>
                             </ContextMenu>
                         </DataGrid.ContextMenu>
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="#2D2D30"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="BorderBrush" Value="#3F3F46"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Padding" Value="6,4"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+
+                        <DataGrid.Resources>
+                            <!-- remove the light focus rectangle & cell/row borders -->
+                            <Style TargetType="{x:Type DataGrid}">
+                                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                            </Style>
+                            <Style TargetType="{x:Type DataGridRow}">
+                                <Setter Property="Background" Value="#1E1E1E"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="BorderBrush" Value="#1E1E1E"/>
+                            </Style>
+                            <Style TargetType="{x:Type DataGridCell}">
+                                <Setter Property="Background" Value="#1E1E1E"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="BorderBrush" Value="#1E1E1E"/>
+                            </Style>
+                        </DataGrid.Resources>
                     </DataGrid>
                 </Grid>
             </Border>
