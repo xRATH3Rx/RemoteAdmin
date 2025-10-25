@@ -11,6 +11,8 @@ namespace RemoteAdmin.Server
         private string _status;
         private DateTime _lastSeen;
         public RegistryEditorWindow RegistryEditorWindow { get; set; }
+        public StartupManagerWindow? StartupManagerWindow { get; set; }
+        public SystemInformationWindow? SystemInformationWindow { get; set; }
 
         public string Id { get; set; }
         public string ComputerName { get; set; }

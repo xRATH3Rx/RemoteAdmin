@@ -40,4 +40,16 @@
         SetValue,
         DeleteValue
     }
+
+    [Serializable]
+    public enum StartupType
+    {
+        LocalMachineRun = 0,
+        LocalMachineRunOnce = 1,
+        CurrentUserRun = 2,
+        CurrentUserRunOnce = 3,
+        StartMenu = 4,
+        LocalMachineRunX86 = 5,
+        LocalMachineRunOnceX86 = 6
+    }
 }

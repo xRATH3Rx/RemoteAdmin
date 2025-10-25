@@ -12,7 +12,7 @@
 
         // Installation Settings
         public bool InstallClient { get; set; }
-        public string InstallLocation { get; set; } // "AppData", "ProgramFiles", "System"
+        public string InstallLocation { get; set; }
         public string InstallSubDirectory { get; set; }
         public string InstallName { get; set; }
         public bool SetFileHidden { get; set; }
@@ -27,10 +27,7 @@
         public string AssemblyCompany { get; set; }
         public string IconPath { get; set; }
 
-        // Advanced
         public bool Obfuscate { get; set; }
-
-        // Output
         public string OutputPath { get; set; }
 
         public string ClientPfxPassword { get; set; } = "";

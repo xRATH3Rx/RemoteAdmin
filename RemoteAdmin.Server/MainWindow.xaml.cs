@@ -399,6 +399,39 @@ namespace RemoteAdmin.Server
             }
         }
 
+        private void StartUpManager_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedClient = ClientsGrid.SelectedItem as ConnectedClient;
+
+            if (selectedClient.StartupManagerWindow != null && selectedClient.StartupManagerWindow.IsLoaded)
+            {
+                selectedClient.StartupManagerWindow.Activate();
+            }
+            else
+            {
+                var startupManagerWindow = new StartupManagerWindow(selectedClient);
+                selectedClient.StartupManagerWindow = startupManagerWindow;
+                startupManagerWindow.Show();
+            }
+        }
+
+        private void Sysinfo_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedClient = ClientsGrid.SelectedItem as ConnectedClient;
+
+            if (selectedClient.SystemInformationWindow != null && selectedClient.SystemInformationWindow.IsLoaded)
+            {
+                selectedClient.SystemInformationWindow.Activate();
+            }
+            else
+            {
+                var sysInfowindow = new SystemInformationWindow(selectedClient);
+                selectedClient.SystemInformationWindow = sysInfowindow;
+                sysInfowindow.Show();
+            }
+
+        }
+
         private async void PowerRestart_Click(object sender, RoutedEventArgs e)
         {
             await SendPowerCommand("Restart", "Are you sure you want to restart this computer?");

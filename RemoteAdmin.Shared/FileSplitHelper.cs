@@ -6,7 +6,7 @@ namespace RemoteAdmin.Shared
 {
     public class FileSplitHelper
     {
-        public const int MaxChunkSize = 65535; // 64KB chunks
+        public const int MaxChunkSize = 65535;
 
         public static IEnumerable<FileChunk> ReadFileChunks(string filePath)
         {

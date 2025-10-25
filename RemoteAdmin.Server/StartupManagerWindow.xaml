@@ -1,0 +1,144 @@
+﻿<Window x:Class="RemoteAdmin.Server.StartupManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Startup Manager" 
+        Height="600" 
+        Width="900"
+        Background="#1E1E1E"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize">
+
+    <Window.Resources>
+        <!-- Dark Theme Colors -->
+        <SolidColorBrush x:Key="WindowBackground" Color="#1E1E1E"/>
+        <SolidColorBrush x:Key="ControlBackground" Color="#2D2D30"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#3F3F46"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#007ACC"/>
+        <SolidColorBrush x:Key="HoverBrush" Color="#3E3E42"/>
+        <SolidColorBrush x:Key="SuccessBrush" Color="#10B981"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="#EF4444"/>
+
+        <!-- Button Style -->
+        <Style x:Key="DarkButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Opacity" Value="0.8"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ListView Style -->
+        <Style TargetType="ListView">
+            <Setter Property="Background" Value="{StaticResource ControlBackground}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <!-- ListViewItem Style -->
+        <Style TargetType="ListViewItem">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource HoverBrush}"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0" 
+                   Text="Startup Manager" 
+                   FontSize="24" 
+                   FontWeight="Bold" 
+                   Foreground="{StaticResource TextBrush}"
+                   Margin="0,0,0,15"/>
+
+        <!-- Toolbar -->
+        <StackPanel Grid.Row="1" 
+                    Orientation="Horizontal" 
+                    Margin="0,0,0,10">
+            <Button x:Name="btnAdd" 
+                    Content="➕ Add Entry" 
+                    Style="{StaticResource DarkButton}"
+                    Background="{StaticResource SuccessBrush}"
+                    Click="btnAdd_Click"
+                    Margin="0,0,10,0"/>
+            <Button x:Name="btnRemove" 
+                    Content="🗑️ Remove Selected" 
+                    Style="{StaticResource DarkButton}"
+                    Background="{StaticResource DangerBrush}"
+                    Click="btnRemove_Click"
+                    Margin="0,0,10,0"/>
+            <Button x:Name="btnRefresh" 
+                    Content="🔄 Refresh" 
+                    Style="{StaticResource DarkButton}"
+                    Click="btnRefresh_Click"/>
+        </StackPanel>
+
+        <!-- Startup Items List -->
+        <ListView x:Name="lvStartupItems" 
+                  Grid.Row="2"
+                  SelectionMode="Extended">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Name" 
+                                   Width="200" 
+                                   DisplayMemberBinding="{Binding Name}"/>
+                    <GridViewColumn Header="Path" 
+                                   Width="400" 
+                                   DisplayMemberBinding="{Binding Path}"/>
+                    <GridViewColumn Header="Type" 
+                                   Width="250" 
+                                   DisplayMemberBinding="{Binding TypeDisplay}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="3" 
+                Background="{StaticResource ControlBackground}" 
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="10"
+                Margin="0,10,0,0">
+            <TextBlock x:Name="txtStatus" 
+                       Text="Ready" 
+                       Foreground="{StaticResource TextBrush}"/>
+        </Border>
+    </Grid>
+</Window>

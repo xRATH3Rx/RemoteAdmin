@@ -138,6 +138,21 @@ namespace RemoteAdmin.Server.Networking
                             Console.WriteLine($"Received registry operation result: {registryOperationResult.Operation} - {registryOperationResult.Success}");
                             _dispatcher.Invoke(() => client.RegistryEditorWindow?.HandleOperationResult(registryOperationResult));
                         }
+                        else if (msg is GetStartupItemsResponseMessage startupItemsResponse)
+                        {
+                            Console.WriteLine($"Received startup items response: {startupItemsResponse.StartupItems.Count} items");
+                            _dispatcher.Invoke(() => client.StartupManagerWindow?.UpdateStartupItemsList(startupItemsResponse.StartupItems));
+                        }
+                        else if (msg is StartupItemOperationResponseMessage startupOpResponse)
+                        {
+                            Console.WriteLine($"Received startup operation result: {startupOpResponse.Success}");
+                            _dispatcher.Invoke(() => client.StartupManagerWindow?.HandleOperationResult(startupOpResponse));
+                        }
+                        else if (msg is GetSystemInfoResponseMessage sysInfoResponse)
+                        {
+                            Console.WriteLine($"Received system info response: {sysInfoResponse.SystemInfo.Count} items");
+                            _dispatcher.Invoke(() => client.SystemInformationWindow?.UpdateSystemInformationList(sysInfoResponse.SystemInfo));
+                        }
                     }
                 }
             }

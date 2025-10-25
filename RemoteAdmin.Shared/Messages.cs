@@ -390,11 +390,11 @@ namespace RemoteAdmin.Shared
     }
 
     [Serializable]
-    public class SelectMonitorMessage : Message  // Add : Message here
+    public class SelectMonitorMessage : Message
     {
         public SelectMonitorMessage()
         {
-            Type = "SelectMonitor";  // Add this
+            Type = "SelectMonitor";
         }
 
         public int MonitorIndex { get; set; }
@@ -418,7 +418,7 @@ namespace RemoteAdmin.Shared
             Type = "RegistryEnumerate";
         }
 
-        public string KeyPath { get; set; } // e.g., "HKEY_LOCAL_MACHINE\\Software"
+        public string KeyPath { get; set; }
     }
 
     // Response with registry keys and values
@@ -452,7 +452,6 @@ namespace RemoteAdmin.Shared
         public RegistryValueType ValueType { get; set; }
         public object Data { get; set; }
 
-        // Helper property for display purposes
         public string Type => GetRegistryTypeString(ValueType);
 
         private string GetRegistryTypeString(RegistryValueType type)
@@ -549,6 +548,104 @@ namespace RemoteAdmin.Shared
         public ElevationRequestMessage()
         {
             Type = "Elevate";
+        }
+    }
+
+    [Serializable]
+    public class StartupItem
+    {
+        public string Name { get; set; }
+        public string Path { get; set; }
+        public StartupType Type { get; set; }
+    }
+
+    [Serializable]
+    public class GetStartupItemsMessage : Message
+    {
+        public GetStartupItemsMessage()
+        {
+            Type = "GetStartupItems";
+        }
+    }
+
+    [Serializable]
+    public class GetStartupItemsResponseMessage : Message
+    {
+        public GetStartupItemsResponseMessage()
+        {
+            Type = "GetStartupItemsResponse";
+        }
+
+        public List<StartupItem> StartupItems { get; set; }
+    }
+
+    [Serializable]
+    public class AddStartupItemMessage : Message
+    {
+        public AddStartupItemMessage()
+        {
+            Type = "AddStartupItem";
+        }
+
+        public StartupItem Item { get; set; }
+    }
+
+    [Serializable]
+    public class RemoveStartupItemMessage : Message
+    {
+        public RemoveStartupItemMessage()
+        {
+            Type = "RemoveStartupItem";
+        }
+
+        public StartupItem Item { get; set; }
+    }
+
+
+    [Serializable]
+    public class StartupItemOperationResponseMessage : Message
+    {
+        public StartupItemOperationResponseMessage()
+        {
+            Type = "StartupItemOperationResponse";
+        }
+
+        public bool Success { get; set; }
+        public string ErrorMessage { get; set; }
+    }
+
+    [Serializable]
+    public class GetSystemInfoMessage : Message
+    {
+        public GetSystemInfoMessage()
+        {
+            Type = "GetSystemInfo";
+        }
+    }
+
+    [Serializable]
+    public class GetSystemInfoResponseMessage : Message
+    {
+        public GetSystemInfoResponseMessage()
+        {
+            Type = "GetSystemInfoResponse";
+        }
+
+        public List<SystemInfoItem> SystemInfo { get; set; }
+    }
+
+    [Serializable]
+    public class SystemInfoItem
+    {
+        public string Key { get; set; }
+        public string Value { get; set; }
+
+        public SystemInfoItem() { }
+
+        public SystemInfoItem(string key, string value)
+        {
+            Key = key;
+            Value = value;
         }
     }
 

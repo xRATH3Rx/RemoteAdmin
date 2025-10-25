@@ -15,6 +15,7 @@ using RemoteAdmin.Client.Config;
 using RemoteAdmin.Client.Handlers;
 using RemoteAdmin.Client.Modules;
 using RemoteAdmin.Shared;
+using RemoteAdmin.Shared.Enums;
 
 
 namespace RemoteAdmin.Client.Networking
@@ -290,6 +291,26 @@ namespace RemoteAdmin.Client.Networking
                     {
                         Console.WriteLine("Received elevation request");
                         _ = Task.Run(async () => await CommandHandler.HandleElevationRequest(stream));
+                    }
+                    else if (message is GetStartupItemsMessage)
+                    {
+                        Console.WriteLine("Received get startup items request");
+                        _ = Task.Run(async () => await StartupManagerHandler.HandleGetStartupItems(stream));
+                    }
+                    else if (message is AddStartupItemMessage addStartupMsg)
+                    {
+                        Console.WriteLine($"Received add startup item request: {addStartupMsg.Item.Name}");
+                        _ = Task.Run(async () => await StartupManagerHandler.HandleAddStartupItem(stream, addStartupMsg));
+                    }
+                    else if (message is RemoveStartupItemMessage removeStartupMsg)
+                    {
+                        Console.WriteLine($"Received remove startup item request: {removeStartupMsg.Item.Name}");
+                        _ = Task.Run(async () => await StartupManagerHandler.HandleRemoveStartupItem(stream, removeStartupMsg));
+                    }
+                    else if (message is GetSystemInfoMessage)
+                    {
+                        Console.WriteLine("Received get system info request");
+                        _ = Task.Run(async () => await SystemInformationHandler.HandleGetSystemInfo(stream));
                     }
                 }
             }

