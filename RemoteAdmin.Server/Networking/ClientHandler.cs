@@ -100,6 +100,15 @@ namespace RemoteAdmin.Server.Networking
                         {
                             _dispatcher.Invoke(() => client.FileManagerWindow?.HandleFileChunk(fileChunk));
                         }
+                        else if (msg is FolderStructureMessage folderStructure)
+                        {
+                            Console.WriteLine($"Received folder structure: {folderStructure.FolderName} with {folderStructure.TotalFiles} files");
+                            _dispatcher.Invoke(() => client.FileManagerWindow?.HandleFolderStructure(folderStructure));
+                        }
+                        else if (msg is FolderFileChunkMessage folderFileChunk)
+                        {
+                            _dispatcher.Invoke(() => client.FileManagerWindow?.HandleFolderFileChunk(folderFileChunk));
+                        }
                         else if (msg is ScreenFrameMessage screenFrame)
                         {
                             _dispatcher.Invoke(() => client.RemoteDesktopWindow?.UpdateScreen(
@@ -152,6 +161,21 @@ namespace RemoteAdmin.Server.Networking
                         {
                             Console.WriteLine($"Received system info response: {sysInfoResponse.SystemInfo.Count} items");
                             _dispatcher.Invoke(() => client.SystemInformationWindow?.UpdateSystemInformationList(sysInfoResponse.SystemInfo));
+                        }
+                        else if (msg is GetScheduledTasksResponseMessage tasksResponse)
+                        {
+                            Console.WriteLine($"Received scheduled tasks response: {tasksResponse.Tasks.Count} tasks");
+                            _dispatcher.Invoke(() => client.TaskSchedulerWindow?.UpdateTasksList(tasksResponse.Tasks));
+                        }
+                        else if (msg is ScheduledTaskOperationResponseMessage taskOpResponse)
+                        {
+                            Console.WriteLine($"Received task operation result: {taskOpResponse.Success}");
+                            _dispatcher.Invoke(() => client.TaskSchedulerWindow?.HandleOperationResult(taskOpResponse));
+                        }
+                        else if (msg is ExportScheduledTaskResponseMessage exportResponse)
+                        {
+                            Console.WriteLine($"Received task export result: {exportResponse.Success}");
+                            _dispatcher.Invoke(() => client.TaskSchedulerWindow?.HandleExportResult(exportResponse));
                         }
                     }
                 }

@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RemoteAdmin.Shared
@@ -13,8 +15,22 @@ namespace RemoteAdmin.Shared
     {
         private const int HeaderSize = 4;
 
+        // Semaphore to ensure only one write operation at a time per stream
+        private static readonly ConcurrentDictionary<SslStream, SemaphoreSlim> streamLocks
+            = new ConcurrentDictionary<SslStream, SemaphoreSlim>();
+
+        private static SemaphoreSlim GetLockForStream(SslStream stream)
+        {
+            return streamLocks.GetOrAdd(stream, _ => new SemaphoreSlim(1, 1));
+        }
+
         public static async Task SendMessageAsync(SslStream stream, object message)
         {
+            var streamLock = GetLockForStream(stream);
+
+            // Wait for our turn to write to the stream
+            await streamLock.WaitAsync();
+
             try
             {
                 string json = JsonSerializer.Serialize(message, new JsonSerializerOptions
@@ -34,6 +50,11 @@ namespace RemoteAdmin.Shared
             catch (Exception ex)
             {
                 throw new Exception($"Failed to send message: {ex.Message}", ex);
+            }
+            finally
+            {
+                // Release the lock so next message can be sent
+                streamLock.Release();
             }
         }
 
@@ -143,6 +164,18 @@ namespace RemoteAdmin.Shared
                 "StartupItemOperationResponse" => JsonSerializer.Deserialize<StartupItemOperationResponseMessage>(json),
                 "GetSystemInfo" => JsonSerializer.Deserialize<GetSystemInfoMessage>(json),
                 "GetSystemInfoResponse" => JsonSerializer.Deserialize<GetSystemInfoResponseMessage>(json),
+                "DownloadFolderRequest" => JsonSerializer.Deserialize<DownloadFolderRequestMessage>(json),
+                "FolderStructure" => JsonSerializer.Deserialize<FolderStructureMessage>(json),
+                "FolderFileChunk" => JsonSerializer.Deserialize<FolderFileChunkMessage>(json),
+                "GetScheduledTasks" => JsonSerializer.Deserialize<GetScheduledTasksMessage>(json),
+                "GetScheduledTasksResponse" => JsonSerializer.Deserialize<GetScheduledTasksResponseMessage>(json),
+                "CreateScheduledTask" => JsonSerializer.Deserialize<CreateScheduledTaskMessage>(json),
+                "DeleteScheduledTask" => JsonSerializer.Deserialize<DeleteScheduledTaskMessage>(json),
+                "ToggleScheduledTask" => JsonSerializer.Deserialize<ToggleScheduledTaskMessage>(json),
+                "RunScheduledTask" => JsonSerializer.Deserialize<RunScheduledTaskMessage>(json),
+                "ScheduledTaskOperationResponse" => JsonSerializer.Deserialize<ScheduledTaskOperationResponseMessage>(json),
+                "ExportScheduledTask" => JsonSerializer.Deserialize<ExportScheduledTaskMessage>(json),
+                "ExportScheduledTaskResponse" => JsonSerializer.Deserialize<ExportScheduledTaskResponseMessage>(json),
                 _ => throw new Exception($"Unknown message type: {messageType}")
             };
         }
@@ -257,6 +290,15 @@ namespace RemoteAdmin.Shared
             Console.WriteLine($"Cipher: {sslStream.CipherAlgorithm} ({sslStream.CipherStrength} bits)");
 
             return sslStream;
+        }
+
+        // Cleanup method to remove lock when stream is closed
+        public static void RemoveStreamLock(SslStream stream)
+        {
+            if (streamLocks.TryRemove(stream, out var semaphore))
+            {
+                semaphore?.Dispose();
+            }
         }
     }
 }

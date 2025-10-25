@@ -431,6 +431,22 @@ namespace RemoteAdmin.Server
             }
 
         }
+        private void TaskScheduler_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedClient = ClientsGrid.SelectedItem as ConnectedClient;
+
+            if (selectedClient.TaskSchedulerWindow != null && selectedClient.TaskSchedulerWindow.IsLoaded)
+            {
+                selectedClient.TaskSchedulerWindow.Activate();
+            }
+            else
+            {
+                var taskScheduler = new TaskSchedulerWindow(selectedClient);
+                selectedClient.TaskSchedulerWindow = taskScheduler;
+                taskScheduler.Show();
+            }
+
+        }
 
         private async void PowerRestart_Click(object sender, RoutedEventArgs e)
         {

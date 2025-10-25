@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
@@ -17,6 +18,8 @@ namespace RemoteAdmin.Server
         private ObservableCollection<FileSystemItemViewModel> files;
         private string currentPath = "C:\\";
         private Dictionary<string, FileTransfer> activeTransfers;
+        private Dictionary<string, FolderTransfer> activeFolderTransfers;
+        private string downloadsBasePath;
 
         public FileManagerWindow(ConnectedClient client)
         {
@@ -26,6 +29,29 @@ namespace RemoteAdmin.Server
             folders = new ObservableCollection<FileSystemItemViewModel>();
             files = new ObservableCollection<FileSystemItemViewModel>();
             activeTransfers = new Dictionary<string, FileTransfer>();
+            activeFolderTransfers = new Dictionary<string, FolderTransfer>();
+
+            // Create downloads directory structure: Downloads/[ComputerName]/
+            downloadsBasePath = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                "Downloads",
+                SanitizeFileName(client.ComputerName)
+            );
+
+            try
+            {
+                Directory.CreateDirectory(downloadsBasePath);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Failed to create downloads directory: {ex.Message}\nDownloads will be prompted for location.",
+                    "Warning",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning
+                );
+                downloadsBasePath = null;
+            }
 
             lstFolders.ItemsSource = folders;
             gridFiles.ItemsSource = files;
@@ -39,7 +65,7 @@ namespace RemoteAdmin.Server
             };
         }
 
-        private async System.Threading.Tasks.Task LoadDirectory(string path)
+        private async Task LoadDirectory(string path)
         {
             try
             {
@@ -56,7 +82,12 @@ namespace RemoteAdmin.Server
             catch (Exception ex)
             {
                 UpdateStatus($"Error: {ex.Message}");
-                MessageBox.Show($"Error loading directory: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(
+                    $"Error loading directory: {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
             }
         }
 
@@ -64,27 +95,45 @@ namespace RemoteAdmin.Server
         {
             Dispatcher.Invoke(() =>
             {
-                folders.Clear();
-                files.Clear();
-
-                if (!response.Success)
+                try
                 {
-                    UpdateStatus($"Error: {response.Error}");
-                    MessageBox.Show($"Error loading directory: {response.Error}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
+                    folders.Clear();
+                    files.Clear();
 
-                foreach (var item in response.Items.Where(i => i.IsDirectory).OrderBy(i => i.Name))
+                    if (!response.Success)
+                    {
+                        UpdateStatus($"Error: {response.Error ?? "Unknown error"}");
+                        MessageBox.Show(
+                            $"Error loading directory: {response.Error ?? "Unknown error"}",
+                            "Error",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error
+                        );
+                        return;
+                    }
+
+                    foreach (var item in response.Items.Where(i => i.IsDirectory).OrderBy(i => i.Name))
+                    {
+                        folders.Add(new FileSystemItemViewModel(item));
+                    }
+
+                    foreach (var item in response.Items.Where(i => !i.IsDirectory).OrderBy(i => i.Name))
+                    {
+                        files.Add(new FileSystemItemViewModel(item));
+                    }
+
+                    UpdateStatus($"{folders.Count} folders, {files.Count} files");
+                }
+                catch (Exception ex)
                 {
-                    folders.Add(new FileSystemItemViewModel(item));
+                    UpdateStatus($"Error: {ex.Message}");
+                    MessageBox.Show(
+                        $"Error updating directory listing: {ex.Message}",
+                        "Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error
+                    );
                 }
-
-                foreach (var item in response.Items.Where(i => !i.IsDirectory).OrderBy(i => i.Name))
-                {
-                    files.Add(new FileSystemItemViewModel(item));
-                }
-
-                UpdateStatus($"{folders.Count} folders, {files.Count} files");
             });
         }
 
@@ -96,28 +145,27 @@ namespace RemoteAdmin.Server
                 {
                     if (!activeTransfers.ContainsKey(chunk.TransferId))
                     {
-                        // Start new download
-                        var saveDialog = new SaveFileDialog
-                        {
-                            FileName = chunk.FileName,
-                            Title = "Save Downloaded File"
-                        };
-
-                        if (saveDialog.ShowDialog() != true)
-                        {
-                            UpdateStatus("Download cancelled");
-                            return;
-                        }
+                        // Start new transfer - this happens on first chunk
+                        string localPath = downloadsBasePath != null
+                            ? Path.Combine(downloadsBasePath, chunk.FileName)
+                            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), chunk.FileName);
 
                         activeTransfers[chunk.TransferId] = new FileTransfer
                         {
-                            FilePath = saveDialog.FileName,
+                            FilePath = localPath,
+                            FileName = chunk.FileName,
                             TotalSize = chunk.FileSize,
                             BytesTransferred = 0
                         };
                     }
 
                     var transfer = activeTransfers[chunk.TransferId];
+
+                    // Update total size if not set yet
+                    if (transfer.TotalSize == 0)
+                    {
+                        transfer.TotalSize = chunk.FileSize;
+                    }
 
                     // Write chunk to file
                     FileSplitHelper.WriteFileChunk(transfer.FilePath, new FileChunk
@@ -128,21 +176,170 @@ namespace RemoteAdmin.Server
 
                     transfer.BytesTransferred += chunk.Data.Length;
 
-                    // Update progress
-                    int progress = (int)((transfer.BytesTransferred * 100) / transfer.TotalSize);
-                    UpdateStatus($"Downloading: {progress}% ({FormatBytes(transfer.BytesTransferred)} / {FormatBytes(transfer.TotalSize)})");
+                    // Update progress (with divide by zero protection)
+                    if (transfer.TotalSize > 0)
+                    {
+                        int progress = (int)((transfer.BytesTransferred * 100) / transfer.TotalSize);
+                        UpdateStatus($"Downloading {transfer.FileName}: {progress}% ({FormatBytes(transfer.BytesTransferred)} / {FormatBytes(transfer.TotalSize)})");
+                    }
+                    else
+                    {
+                        UpdateStatus($"Downloading {transfer.FileName}: {FormatBytes(transfer.BytesTransferred)}");
+                    }
 
                     if (chunk.IsLastChunk)
                     {
                         activeTransfers.Remove(chunk.TransferId);
-                        UpdateStatus("Download complete!");
-                        MessageBox.Show($"File downloaded successfully to:\n{transfer.FilePath}", "Download Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        // Check if all transfers are complete
+                        if (activeTransfers.Count == 0 && activeFolderTransfers.Count == 0)
+                        {
+                            UpdateStatus("All downloads complete!");
+                            MessageBox.Show(
+                                $"Download(s) completed successfully!\nLocation: {downloadsBasePath}",
+                                "Download Complete",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Information
+                            );
+                        }
+                        else
+                        {
+                            int remaining = activeTransfers.Count + activeFolderTransfers.Count;
+                            UpdateStatus($"Downloaded {transfer.FileName}. {remaining} remaining...");
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
                     UpdateStatus($"Error: {ex.Message}");
-                    MessageBox.Show($"Error downloading file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(
+                        $"Error downloading file: {ex.Message}",
+                        "Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error
+                    );
+                }
+            });
+        }
+
+        public void HandleFolderStructure(FolderStructureMessage folderStructure)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    // Initialize folder transfer tracking
+                    activeFolderTransfers[folderStructure.TransferId] = new FolderTransfer
+                    {
+                        FolderName = folderStructure.FolderName,
+                        TotalFiles = folderStructure.TotalFiles,
+                        CompletedFiles = 0,
+                        Files = folderStructure.Files
+                    };
+
+                    UpdateStatus($"Downloading folder '{folderStructure.FolderName}': 0/{folderStructure.TotalFiles} files");
+                }
+                catch (Exception ex)
+                {
+                    UpdateStatus($"Error: {ex.Message}");
+                    MessageBox.Show(
+                        $"Error initializing folder download: {ex.Message}",
+                        "Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error
+                    );
+                }
+            });
+        }
+
+        public void HandleFolderFileChunk(FolderFileChunkMessage chunk)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    if (!activeFolderTransfers.TryGetValue(chunk.TransferId, out var folderTransfer))
+                    {
+                        UpdateStatus($"Warning: Unknown folder transfer ID: {chunk.TransferId}");
+                        return;
+                    }
+
+                    // Create unique transfer ID for this file within the folder
+                    string fileTransferId = $"{chunk.TransferId}_{chunk.FileIndex}";
+
+                    if (!activeTransfers.ContainsKey(fileTransferId))
+                    {
+                        // Create the file path preserving folder structure
+                        string localFolderPath = Path.Combine(downloadsBasePath, folderTransfer.FolderName);
+                        string fileDirectory = Path.GetDirectoryName(Path.Combine(localFolderPath, chunk.RelativePath));
+
+                        // Ensure directory exists
+                        Directory.CreateDirectory(fileDirectory);
+
+                        string localFilePath = Path.Combine(localFolderPath, chunk.RelativePath);
+
+                        activeTransfers[fileTransferId] = new FileTransfer
+                        {
+                            FilePath = localFilePath,
+                            FileName = chunk.FileName,
+                            TotalSize = chunk.FileSize,
+                            BytesTransferred = 0
+                        };
+                    }
+
+                    var transfer = activeTransfers[fileTransferId];
+
+                    // Update total size if needed
+                    if (transfer.TotalSize == 0)
+                    {
+                        transfer.TotalSize = chunk.FileSize;
+                    }
+
+                    // Write chunk to file
+                    FileSplitHelper.WriteFileChunk(transfer.FilePath, new FileChunk
+                    {
+                        Data = chunk.Data,
+                        Offset = chunk.Offset
+                    });
+
+                    transfer.BytesTransferred += chunk.Data.Length;
+
+                    if (chunk.IsLastChunk)
+                    {
+                        activeTransfers.Remove(fileTransferId);
+                        folderTransfer.CompletedFiles++;
+
+                        // Update progress
+                        int folderProgress = (folderTransfer.CompletedFiles * 100) / folderTransfer.TotalFiles;
+                        UpdateStatus($"Downloading folder '{folderTransfer.FolderName}': {folderTransfer.CompletedFiles}/{folderTransfer.TotalFiles} files ({folderProgress}%)");
+
+                        // Check if folder download is complete
+                        if (folderTransfer.CompletedFiles >= folderTransfer.TotalFiles)
+                        {
+                            activeFolderTransfers.Remove(chunk.TransferId);
+
+                            if (activeTransfers.Count == 0 && activeFolderTransfers.Count == 0)
+                            {
+                                UpdateStatus("All downloads complete!");
+                                MessageBox.Show(
+                                    $"Download(s) completed successfully!\nLocation: {downloadsBasePath}",
+                                    "Download Complete",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Information
+                                );
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    UpdateStatus($"Error: {ex.Message}");
+                    MessageBox.Show(
+                        $"Error downloading folder file: {ex.Message}",
+                        "Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error
+                    );
                 }
             });
         }
@@ -166,10 +363,20 @@ namespace RemoteAdmin.Server
                 {
                     await LoadDirectory(parent.FullName);
                 }
+                else
+                {
+                    UpdateStatus("Already at root directory");
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error navigating up: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                UpdateStatus($"Error: {ex.Message}");
+                MessageBox.Show(
+                    $"Error navigating up: {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
             }
         }
 
@@ -199,29 +406,134 @@ namespace RemoteAdmin.Server
 
         private async void Download_Click(object sender, RoutedEventArgs e)
         {
-            if (gridFiles.SelectedItem is FileSystemItemViewModel file)
+            try
             {
-                try
+                // Get all selected items from both folders and files
+                var selectedFolders = lstFolders.SelectedItems.Cast<FileSystemItemViewModel>().ToList();
+                var selectedFiles = gridFiles.SelectedItems.Cast<FileSystemItemViewModel>().ToList();
+
+                if (selectedFolders.Count == 0 && selectedFiles.Count == 0)
                 {
-                    string transferId = Guid.NewGuid().ToString();
-
-                    var request = new DownloadFileRequestMessage
-                    {
-                        FilePath = file.FullPath,
-                        TransferId = transferId
-                    };
-
-                    await NetworkHelper.SendMessageAsync(client.Stream, request);
-                    UpdateStatus("Requesting download...");
+                    MessageBox.Show(
+                        "Please select one or more files or folders to download.",
+                        "No Selection",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information
+                    );
+                    return;
                 }
-                catch (Exception ex)
+
+                // Warn about folder downloads
+                if (selectedFolders.Count > 0)
                 {
-                    MessageBox.Show($"Error requesting download: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    var result = MessageBox.Show(
+                        $"You are about to download {selectedFolders.Count} folder(s) and {selectedFiles.Count} file(s).\n\n" +
+                        "Folders will be downloaded recursively with all their contents.\n" +
+                        "This may take some time depending on the size.\n\n" +
+                        "Continue?",
+                        "Confirm Download",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question
+                    );
+
+                    if (result != MessageBoxResult.Yes)
+                    {
+                        return;
+                    }
+                }
+
+                UpdateStatus("Preparing download...");
+
+                // Download all selected folders
+                foreach (var folder in selectedFolders)
+                {
+                    await DownloadFolder(folder.FullPath, folder.Name);
+                }
+
+                // Download all selected files
+                foreach (var file in selectedFiles)
+                {
+                    await DownloadFile(file.FullPath, file.Name);
+                }
+
+                if (activeTransfers.Count == 0 && activeFolderTransfers.Count == 0)
+                {
+                    UpdateStatus("Ready");
                 }
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show("Please select a file to download.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                UpdateStatus($"Error: {ex.Message}");
+                MessageBox.Show(
+                    $"Error initiating download: {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+            }
+        }
+
+        private async Task DownloadFolder(string remoteFolderPath, string folderName)
+        {
+            try
+            {
+                string transferId = Guid.NewGuid().ToString();
+
+                UpdateStatus($"Requesting folder: {folderName}...");
+
+                var request = new DownloadFolderRequestMessage
+                {
+                    FolderPath = remoteFolderPath,
+                    TransferId = transferId
+                };
+
+                await NetworkHelper.SendMessageAsync(client.Stream, request);
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error: {ex.Message}");
+                MessageBox.Show(
+                    $"Error downloading folder '{folderName}': {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+            }
+        }
+
+        private async Task DownloadFile(string remoteFilePath, string fileName)
+        {
+            try
+            {
+                string transferId = Guid.NewGuid().ToString();
+
+                // Register the transfer (will be updated with actual size from first chunk)
+                activeTransfers[transferId] = new FileTransfer
+                {
+                    FilePath = Path.Combine(downloadsBasePath ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), fileName),
+                    FileName = fileName,
+                    TotalSize = 0, // Will be updated from first chunk
+                    BytesTransferred = 0
+                };
+
+                var request = new DownloadFileRequestMessage
+                {
+                    FilePath = remoteFilePath,
+                    TransferId = transferId
+                };
+
+                await NetworkHelper.SendMessageAsync(client.Stream, request);
+                UpdateStatus($"Downloading {fileName}...");
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error: {ex.Message}");
+                MessageBox.Show(
+                    $"Error downloading file '{fileName}': {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
             }
         }
 
@@ -231,62 +543,77 @@ namespace RemoteAdmin.Server
             {
                 var openDialog = new OpenFileDialog
                 {
-                    Title = "Select File to Upload"
+                    Title = "Select File to Upload",
+                    Multiselect = false
                 };
 
-                if (openDialog.ShowDialog() == true)
+                if (openDialog.ShowDialog() != true)
                 {
-                    string transferId = Guid.NewGuid().ToString();
-                    string fileName = Path.GetFileName(openDialog.FileName);
-                    long fileSize = new FileInfo(openDialog.FileName).Length;
+                    return;
+                }
 
-                    // Send upload start message
-                    var startMsg = new UploadFileStartMessage
+                string transferId = Guid.NewGuid().ToString();
+                string fileName = Path.GetFileName(openDialog.FileName);
+                long fileSize = new FileInfo(openDialog.FileName).Length;
+
+                UpdateStatus("Uploading...");
+
+                // Send upload start message
+                var startMsg = new UploadFileStartMessage
+                {
+                    TransferId = transferId,
+                    DestinationPath = currentPath,
+                    FileName = fileName,
+                    FileSize = fileSize
+                };
+
+                await NetworkHelper.SendMessageAsync(client.Stream, startMsg);
+
+                // Send file chunks
+                int chunkNumber = 0;
+                long totalChunks = (fileSize / FileSplitHelper.MaxChunkSize) + 1;
+
+                foreach (var chunk in FileSplitHelper.ReadFileChunks(openDialog.FileName))
+                {
+                    chunkNumber++;
+                    bool isLast = chunkNumber >= totalChunks;
+
+                    var chunkMsg = new FileChunkMessage
                     {
                         TransferId = transferId,
-                        DestinationPath = currentPath,
                         FileName = fileName,
-                        FileSize = fileSize
+                        FileSize = fileSize,
+                        Offset = chunk.Offset,
+                        Data = chunk.Data,
+                        IsLastChunk = isLast
                     };
 
-                    await NetworkHelper.SendMessageAsync(client.Stream, startMsg);
+                    await NetworkHelper.SendMessageAsync(client.Stream, chunkMsg);
 
-                    // Send file chunks
-                    int chunkNumber = 0;
-                    long totalChunks = (fileSize / FileSplitHelper.MaxChunkSize) + 1;
-
-                    foreach (var chunk in FileSplitHelper.ReadFileChunks(openDialog.FileName))
-                    {
-                        chunkNumber++;
-                        bool isLast = chunkNumber >= totalChunks;
-
-                        var chunkMsg = new FileChunkMessage
-                        {
-                            TransferId = transferId,
-                            FileName = fileName,
-                            FileSize = fileSize,
-                            Offset = chunk.Offset,
-                            Data = chunk.Data,
-                            IsLastChunk = isLast
-                        };
-
-                        await NetworkHelper.SendMessageAsync(client.Stream, chunkMsg);
-
-                        int progress = (int)((chunkNumber * 100) / totalChunks);
-                        UpdateStatus($"Uploading: {progress}%");
-                    }
-
-                    UpdateStatus("Upload complete!");
-                    MessageBox.Show("File uploaded successfully!", "Upload Complete", MessageBoxButton.OK, MessageBoxImage.Information);
-
-                    // Refresh directory
-                    await LoadDirectory(currentPath);
+                    int progress = (int)((chunkNumber * 100) / totalChunks);
+                    UpdateStatus($"Uploading: {progress}%");
                 }
+
+                UpdateStatus("Upload complete!");
+                MessageBox.Show(
+                    "File uploaded successfully!",
+                    "Upload Complete",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information
+                );
+
+                // Refresh directory
+                await LoadDirectory(currentPath);
             }
             catch (Exception ex)
             {
                 UpdateStatus($"Error: {ex.Message}");
-                MessageBox.Show($"Error uploading file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(
+                    $"Error uploading file: {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
             }
         }
 
@@ -306,73 +633,142 @@ namespace RemoteAdmin.Server
                     UpdateStatus("Creating folder...");
 
                     // Refresh after a moment
-                    await System.Threading.Tasks.Task.Delay(500);
+                    await Task.Delay(500);
                     await LoadDirectory(currentPath);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error creating folder: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    UpdateStatus($"Error: {ex.Message}");
+                    MessageBox.Show(
+                        $"Error creating folder: {ex.Message}",
+                        "Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error
+                    );
                 }
             }
         }
 
         private async void Delete_Click(object sender, RoutedEventArgs e)
         {
-            FileSystemItemViewModel? selectedItem = null;
-
-            if (lstFolders.SelectedItem is FileSystemItemViewModel folder)
-                selectedItem = folder;
-            else if (gridFiles.SelectedItem is FileSystemItemViewModel file)
-                selectedItem = file;
-
-            if (selectedItem != null)
+            try
             {
+                var selectedFolders = lstFolders.SelectedItems.Cast<FileSystemItemViewModel>().ToList();
+                var selectedFiles = gridFiles.SelectedItems.Cast<FileSystemItemViewModel>().ToList();
+
+                if (selectedFolders.Count == 0 && selectedFiles.Count == 0)
+                {
+                    MessageBox.Show(
+                        "Please select one or more files or folders to delete.",
+                        "No Selection",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information
+                    );
+                    return;
+                }
+
+                var totalCount = selectedFolders.Count + selectedFiles.Count;
                 var result = MessageBox.Show(
-                    $"Are you sure you want to delete '{selectedItem.Name}'?",
+                    $"Are you sure you want to delete {totalCount} item(s)?\n\nThis action cannot be undone!",
                     "Confirm Delete",
                     MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning);
+                    MessageBoxImage.Warning
+                );
 
-                if (result == MessageBoxResult.Yes)
+                if (result != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+
+                UpdateStatus($"Deleting {totalCount} item(s)...");
+
+                // Delete all selected folders
+                foreach (var folder in selectedFolders)
                 {
                     try
                     {
                         var msg = new DeleteFileMessage
                         {
-                            Path = selectedItem.FullPath,
-                            IsDirectory = selectedItem.IsDirectory
+                            Path = folder.FullPath,
+                            IsDirectory = true
                         };
-
                         await NetworkHelper.SendMessageAsync(client.Stream, msg);
-                        UpdateStatus("Deleting...");
-
-                        // Refresh after a moment
-                        await System.Threading.Tasks.Task.Delay(500);
-                        await LoadDirectory(currentPath);
+                        await Task.Delay(100);
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Error deleting: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(
+                            $"Error deleting folder '{folder.Name}': {ex.Message}",
+                            "Error",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error
+                        );
                     }
                 }
+
+                // Delete all selected files
+                foreach (var file in selectedFiles)
+                {
+                    try
+                    {
+                        var msg = new DeleteFileMessage
+                        {
+                            Path = file.FullPath,
+                            IsDirectory = false
+                        };
+                        await NetworkHelper.SendMessageAsync(client.Stream, msg);
+                        await Task.Delay(100);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(
+                            $"Error deleting file '{file.Name}': {ex.Message}",
+                            "Error",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error
+                        );
+                    }
+                }
+
+                // Refresh after deletion
+                await Task.Delay(500);
+                await LoadDirectory(currentPath);
+                UpdateStatus("Deletion complete");
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show("Please select a file or folder to delete.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                UpdateStatus($"Error: {ex.Message}");
+                MessageBox.Show(
+                    $"Error during deletion: {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
             }
         }
 
         private async void Rename_Click(object sender, RoutedEventArgs e)
         {
-            FileSystemItemViewModel? selectedItem = null;
-
-            if (lstFolders.SelectedItem is FileSystemItemViewModel folder)
-                selectedItem = folder;
-            else if (gridFiles.SelectedItem is FileSystemItemViewModel file)
-                selectedItem = file;
-
-            if (selectedItem != null)
+            try
             {
+                FileSystemItemViewModel selectedItem = null;
+
+                if (lstFolders.SelectedItems.Count == 1)
+                    selectedItem = lstFolders.SelectedItem as FileSystemItemViewModel;
+                else if (gridFiles.SelectedItems.Count == 1)
+                    selectedItem = gridFiles.SelectedItem as FileSystemItemViewModel;
+
+                if (selectedItem == null)
+                {
+                    MessageBox.Show(
+                        "Please select exactly one file or folder to rename.",
+                        "Invalid Selection",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information
+                    );
+                    return;
+                }
+
                 var dialog = new InputDialog("Rename", "New name:", selectedItem.Name);
                 if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.ResponseText))
                 {
@@ -387,16 +783,39 @@ namespace RemoteAdmin.Server
                         await NetworkHelper.SendMessageAsync(client.Stream, msg);
                         UpdateStatus("Renaming...");
 
-                        // Refresh after a moment
-                        await System.Threading.Tasks.Task.Delay(500);
+                        await Task.Delay(500);
                         await LoadDirectory(currentPath);
+                        UpdateStatus("Rename complete");
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Error renaming: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        UpdateStatus($"Error: {ex.Message}");
+                        MessageBox.Show(
+                            $"Error renaming: {ex.Message}",
+                            "Error",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error
+                        );
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error: {ex.Message}");
+                MessageBox.Show(
+                    $"Error during rename: {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+            }
+        }
+
+        private string SanitizeFileName(string fileName)
+        {
+            char[] invalidChars = Path.GetInvalidFileNameChars();
+            string sanitized = new string(fileName.Select(c => invalidChars.Contains(c) ? '_' : c).ToArray());
+            return sanitized;
         }
 
         private string FormatBytes(long bytes)
@@ -457,7 +876,17 @@ namespace RemoteAdmin.Server
     public class FileTransfer
     {
         public string FilePath { get; set; }
+        public string FileName { get; set; }
         public long TotalSize { get; set; }
         public long BytesTransferred { get; set; }
+    }
+
+    // Helper class for tracking folder transfers
+    public class FolderTransfer
+    {
+        public string FolderName { get; set; }
+        public int TotalFiles { get; set; }
+        public int CompletedFiles { get; set; }
+        public List<FolderFileInfo> Files { get; set; }
     }
 }

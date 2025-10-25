@@ -239,8 +239,58 @@ namespace RemoteAdmin.Shared
         public string TransferId { get; set; }
     }
 
-    // File chunk message
-    public class FileChunkMessage : Message
+    public class DownloadFolderRequestMessage : Message
+    {
+        public DownloadFolderRequestMessage()
+        {
+            Type = "DownloadFolderRequest";
+        }
+
+        public string FolderPath { get; set; }
+        public string TransferId { get; set; }
+    }
+
+    public class FolderStructureMessage : Message
+    {
+        public FolderStructureMessage()
+        {
+            Type = "FolderStructure";
+        }
+
+        public string TransferId { get; set; }
+        public string FolderName { get; set; }
+        public List<FolderFileInfo> Files { get; set; }
+        public int TotalFiles { get; set; }
+    }
+
+    public class FolderFileInfo
+    {
+        public string RelativePath { get; set; } // Relative to the root folder being downloaded
+        public string FullPath { get; set; }
+        public long FileSize { get; set; }
+    }
+
+    public class FolderFileChunkMessage : Message
+    {
+        public FolderFileChunkMessage()
+        {
+            Type = "FolderFileChunk";
+        }
+
+        public string TransferId { get; set; }
+        public string RelativePath { get; set; }
+        public string FileName { get; set; }
+        public long FileSize { get; set; }
+        public long Offset { get; set; }
+        public byte[] Data { get; set; }
+        public bool IsLastChunk { get; set; }
+        public int FileIndex { get; set; }
+        public int TotalFiles { get; set; }
+    }
+
+
+// File chunk message
+public class FileChunkMessage : Message
     {
         public FileChunkMessage()
         {
@@ -649,4 +699,174 @@ namespace RemoteAdmin.Shared
         }
     }
 
+    public static class TaskResultCodes
+    {
+        public const int Success = 0x0;
+        public const int OperationAborted = 0x41306;
+        public const int OperationTimedOut = 0x102;
+        public const int TaskNotRun = 0x41303;
+        public const int TaskDisabled = 0x41302;
+        public const int TaskQueued = 0x41325;
+        public const int TaskRunning = 0x41301;
+
+        public static string GetResultDescription(int code)
+        {
+            return code switch
+            {
+                Success => "The operation completed successfully",
+                OperationAborted => "The task was terminated by the user",
+                OperationTimedOut => "The task has timed out",
+                TaskNotRun => "The task has not yet run",
+                TaskDisabled => "The task is disabled",
+                TaskQueued => "The task is queued",
+                TaskRunning => "The task is currently running",
+                _ => $"Unknown result code: 0x{code:X}"
+            };
+        }
+    }
+
+    [Serializable]
+    public class ScheduledTask
+    {
+        public string Name { get; set; }
+        public string Path { get; set; }
+        public TaskState State { get; set; }
+        public DateTime? LastRunTime { get; set; }
+        public DateTime? NextRunTime { get; set; }
+        public int LastTaskResult { get; set; }
+        public string Author { get; set; }
+        public string Description { get; set; }
+        public List<TaskTrigger> Triggers { get; set; }
+        public List<TaskAction> Actions { get; set; }
+        public bool Enabled { get; set; }
+        public bool Hidden { get; set; }
+        public string RunAsUser { get; set; }
+        public bool RunWithHighest { get; set; }
+        public bool RunOnlyWhenLoggedOn { get; set; }
+
+    }
+
+    [Serializable]
+    public class TaskTrigger
+    {
+        public TriggerType Type { get; set; }
+        public bool Enabled { get; set; }
+        public string Schedule { get; set; }
+        public DateTime? StartBoundary { get; set; }
+        public DateTime? EndBoundary { get; set; }
+        public string Details { get; set; }
+    }
+
+    [Serializable]
+    public class TaskAction
+    {
+        public ActionType Type { get; set; }
+        public string Path { get; set; }
+        public string Arguments { get; set; }
+        public string WorkingDirectory { get; set; }
+    }
+
+    [Serializable]
+    public class GetScheduledTasksMessage : Message
+    {
+        public GetScheduledTasksMessage()
+        {
+            Type = "GetScheduledTasks";
+        }
+    }
+
+    [Serializable]
+    public class GetScheduledTasksResponseMessage : Message
+    {
+        public GetScheduledTasksResponseMessage()
+        {
+            Type = "GetScheduledTasksResponse";
+        }
+
+        public List<ScheduledTask> Tasks { get; set; }
+    }
+
+    [Serializable]
+    public class CreateScheduledTaskMessage : Message
+    {
+        public CreateScheduledTaskMessage()
+        {
+            Type = "CreateScheduledTask";
+        }
+
+        public ScheduledTask Task { get; set; }
+    }
+
+
+    [Serializable]
+    public class DeleteScheduledTaskMessage : Message
+    {
+        public DeleteScheduledTaskMessage()
+        {
+            Type = "DeleteScheduledTask";
+        }
+
+        public string TaskPath { get; set; }
+    }
+
+    [Serializable]
+    public class ToggleScheduledTaskMessage : Message
+    {
+        public ToggleScheduledTaskMessage()
+        {
+            Type = "ToggleScheduledTask";
+        }
+
+        public string TaskPath { get; set; }
+        public bool Enable { get; set; }
+    }
+
+
+    [Serializable]
+    public class RunScheduledTaskMessage : Message
+    {
+        public RunScheduledTaskMessage()
+        {
+            Type = "RunScheduledTask";
+        }
+
+        public string TaskPath { get; set; }
+    }
+
+    [Serializable]
+    public class ScheduledTaskOperationResponseMessage : Message
+    {
+        public ScheduledTaskOperationResponseMessage()
+        {
+            Type = "ScheduledTaskOperationResponse";
+        }
+
+        public bool Success { get; set; }
+        public string ErrorMessage { get; set; }
+        public TaskOperation Operation { get; set; }
+    }
+
+    [Serializable]
+    public class ExportScheduledTaskMessage : Message
+    {
+        public ExportScheduledTaskMessage()
+        {
+            Type = "ExportScheduledTask";
+        }
+
+        public string TaskPath { get; set; }
+    }
+
+    [Serializable]
+    public class ExportScheduledTaskResponseMessage : Message
+    {
+        public ExportScheduledTaskResponseMessage()
+        {
+            Type = "ExportScheduledTaskResponse";
+        }
+
+        public bool Success { get; set; }
+        public string TaskXml { get; set; }
+        public string ErrorMessage { get; set; }
+    }
 }

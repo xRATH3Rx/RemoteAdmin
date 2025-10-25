@@ -283,6 +283,7 @@
                                 <MenuItem Header="File Manager" Click="FileManager_Click"/>
                                 <MenuItem Header="Visit Website" Click="VisitWebsite_Click"/>
                                 <MenuItem Header="Startup Manager" Click="StartUpManager_Click"/>
+                                    <MenuItem Header="Task Scheduler" Click="TaskScheduler_Click"/>
                                 <MenuItem Header="Request Elevation" Click="RequestElevation_Click"/>
                                 </MenuItem>
                                 <Separator/>

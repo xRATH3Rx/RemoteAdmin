@@ -14,6 +14,23 @@ namespace RemoteAdmin.Server
         public StartupManagerWindow? StartupManagerWindow { get; set; }
         public SystemInformationWindow? SystemInformationWindow { get; set; }
 
+        public string LastSeenFormatted => LastSeen.ToString("HH:mm:ss");
+        public string AccountType { get; set; }
+        public TcpClient? Connection { get; set; }
+        public SslStream? Stream { get; set; }
+
+        public ShellWindow? ShellWindow { get; set; }
+        public TaskManagerWindow? TaskManagerWindow { get; set; }
+        public FileManagerWindow? FileManagerWindow { get; set; }
+
+        public RemoteDesktopWindow? RemoteDesktopWindow { get; set; }
+        public RegistryEditorWindow Registryeditorwindow { get; set; }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public TaskSchedulerWindow TaskSchedulerWindow { get; set; }
+        public string PendingTaskExport { get; set; }
+
         public string Id { get; set; }
         public string ComputerName { get; set; }
         public string Username { get; set; }
@@ -41,20 +58,6 @@ namespace RemoteAdmin.Server
                 OnPropertyChanged(nameof(LastSeenFormatted));
             }
         }
-
-        public string LastSeenFormatted => LastSeen.ToString("HH:mm:ss");
-        public string AccountType { get; set; }
-        public TcpClient? Connection { get; set; }
-        public SslStream? Stream { get; set; }
-
-        public ShellWindow? ShellWindow { get; set; }
-        public TaskManagerWindow? TaskManagerWindow { get; set; }
-        public FileManagerWindow? FileManagerWindow { get; set; }
-
-        public RemoteDesktopWindow? RemoteDesktopWindow { get; set; }
-        public RegistryEditorWindow Registryeditorwindow { get; set; }
-
-        public event PropertyChangedEventHandler PropertyChanged;
 
         protected virtual void OnPropertyChanged(string propertyName)
         {

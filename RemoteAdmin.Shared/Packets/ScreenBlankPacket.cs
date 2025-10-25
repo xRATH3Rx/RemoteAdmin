@@ -1,6 +1,4 @@
-﻿// Add to RemoteAdmin.Shared/Packets folder
-
-using System;
+﻿using System;
 
 namespace RemoteAdmin.Shared.Packets
 {

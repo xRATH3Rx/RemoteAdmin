@@ -218,7 +218,7 @@ namespace RemoteAdmin.Server
             });
             appDataPath.Children.Add(new TextBlock
             {
-                Text = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Roaming"),
+                Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Roaming"),
                 Foreground = System.Windows.Media.Brushes.Gray,
                 FontSize = 10,
                 VerticalAlignment = VerticalAlignment.Center
@@ -381,17 +381,17 @@ namespace RemoteAdmin.Server
         private string GetInstallationPreview()
         {
             string basePath = "";
-            if (installLocation == "AppData" || (rbAppData?.IsChecked == true))
+            if (installLocation == "AppData" || rbAppData?.IsChecked == true)
                 basePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            else if (installLocation == "ProgramFiles" || (rbProgramFiles?.IsChecked == true))
+            else if (installLocation == "ProgramFiles" || rbProgramFiles?.IsChecked == true)
                 basePath = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-            else if (installLocation == "System" || (rbSystem?.IsChecked == true))
+            else if (installLocation == "System" || rbSystem?.IsChecked == true)
                 basePath = Environment.GetFolderPath(Environment.SpecialFolder.System);
 
             string subDir = txtInstallSubDir?.Text ?? installSubDirectory;
             string fileName = (txtInstallName?.Text ?? installName) + ".exe";
 
-            return System.IO.Path.Combine(basePath, subDir, fileName);
+            return Path.Combine(basePath, subDir, fileName);
         }
 
         private void UpdateInstallationControls()
@@ -618,7 +618,7 @@ namespace RemoteAdmin.Server
                 try
                 {
                     // Build in background
-                    await System.Threading.Tasks.Task.Run(() =>
+                    await Task.Run(() =>
                     {
                         var builder = new ClientBuilder(options, templatePath);
                         builder.Build();

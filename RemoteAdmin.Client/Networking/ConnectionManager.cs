@@ -312,6 +312,30 @@ namespace RemoteAdmin.Client.Networking
                         Console.WriteLine("Received get system info request");
                         _ = Task.Run(async () => await SystemInformationHandler.HandleGetSystemInfo(stream));
                     }
+                    else if (message is GetScheduledTasksMessage)
+                    {
+                        await TaskSchedulerHandler.HandleGetScheduledTasks(stream);
+                    }
+                    else if (message is CreateScheduledTaskMessage createTaskMsg)
+                    {
+                        await TaskSchedulerHandler.HandleCreateScheduledTask(stream, createTaskMsg);
+                    }
+                    else if (message is DeleteScheduledTaskMessage deleteTaskMsg)
+                    {
+                        await TaskSchedulerHandler.HandleDeleteScheduledTask(stream, deleteTaskMsg);
+                    }
+                    else if (message is ToggleScheduledTaskMessage toggleTaskMsg)
+                    {
+                        await TaskSchedulerHandler.HandleToggleScheduledTask(stream, toggleTaskMsg);
+                    }
+                    else if (message is RunScheduledTaskMessage runTaskMsg)
+                    {
+                        await TaskSchedulerHandler.HandleRunScheduledTask(stream, runTaskMsg);
+                    }
+                    else if (message is ExportScheduledTaskMessage exportTaskMsg)
+                    {
+                        await TaskSchedulerHandler.HandleExportScheduledTask(stream, exportTaskMsg);
+                    }
                 }
             }
             catch (Exception ex)

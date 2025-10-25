@@ -52,4 +52,47 @@
         LocalMachineRunX86 = 5,
         LocalMachineRunOnceX86 = 6
     }
+
+    public enum TaskState
+    {
+        Unknown = 0,
+        Disabled = 1,
+        Queued = 2,
+        Ready = 3,
+        Running = 4
+    }
+
+    public enum TriggerType
+    {
+        Event = 0,
+        Time = 1,
+        Daily = 2,
+        Weekly = 3,
+        Monthly = 4,
+        MonthlyDOW = 5,
+        Idle = 6,
+        Registration = 7,
+        Boot = 8,
+        Logon = 9,
+        SessionStateChange = 11,
+        Custom = 12
+    }
+
+    public enum ActionType
+    {
+        Execute = 0,
+        ComHandler = 5,
+        SendEmail = 6,
+        ShowMessage = 7
+    }
+
+    public enum TaskOperation
+    {
+        Create,
+        Delete,
+        Enable,
+        Disable,
+        Run,
+        Export
+    }
 }

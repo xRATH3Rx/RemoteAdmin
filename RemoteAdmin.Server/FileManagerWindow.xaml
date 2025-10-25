@@ -94,16 +94,33 @@
                              Background="#1E1E1E"
                              Foreground="White"
                              BorderThickness="0"
+                             SelectionMode="Extended"
                              MouseDoubleClick="lstFolders_MouseDoubleClick"
                              DisplayMemberPath="Name">
                         <ListBox.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Open" Click="OpenFolder_Click" FontWeight="Bold"/>
+                                <MenuItem Header="Download" Click="Download_Click"/>
                                 <Separator/>
                                 <MenuItem Header="Delete" Click="Delete_Click"/>
                                 <MenuItem Header="Rename" Click="Rename_Click"/>
                             </ContextMenu>
                         </ListBox.ContextMenu>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="#0E639C"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#3F3F46"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
                     </ListBox>
                 </Grid>
             </Border>
@@ -111,7 +128,7 @@
             <!-- Files -->
             <Border Grid.Column="1" BorderBrush="#3F3F46" Background="#1E1E1E" BorderThickness="1" Margin="5,0,0,0">
                 <Grid>
-                    
+
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -127,6 +144,8 @@
                               Grid.Row="1"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
+                              SelectionMode="Extended"
+                              SelectionUnit="FullRow"
                               Background="#1E1E1E"
                               Foreground="White"
                               BorderBrush="#3F3F46"
@@ -158,22 +177,35 @@
                             </Style>
                         </DataGrid.ColumnHeaderStyle>
 
-                        <DataGrid.Resources>
-                            <!-- remove the light focus rectangle & cell/row borders -->
-                            <Style TargetType="{x:Type DataGrid}">
-                                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                        <DataGrid.CellStyle>
+                            <Style TargetType="DataGridCell">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="#0E639C"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                </Style.Triggers>
                             </Style>
-                            <Style TargetType="{x:Type DataGridRow}">
+                        </DataGrid.CellStyle>
+
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
                                 <Setter Property="Background" Value="#1E1E1E"/>
                                 <Setter Property="Foreground" Value="White"/>
-                                <Setter Property="BorderBrush" Value="#1E1E1E"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="#0E639C"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#3F3F46"/>
+                                    </Trigger>
+                                </Style.Triggers>
                             </Style>
-                            <Style TargetType="{x:Type DataGridCell}">
-                                <Setter Property="Background" Value="#1E1E1E"/>
-                                <Setter Property="Foreground" Value="White"/>
-                                <Setter Property="BorderBrush" Value="#1E1E1E"/>
-                            </Style>
-                        </DataGrid.Resources>
+                        </DataGrid.RowStyle>
                     </DataGrid>
                 </Grid>
             </Border>
@@ -194,8 +226,8 @@
                         Cursor="Hand"/>
 
                 <Button x:Name="btnDownload" 
-                        Content="⬇ Download File"
-                        Width="120"
+                        Content="⬇ Download Selected"
+                        Width="140"
                         Margin="5"
                         Click="Download_Click"
                         Background="#0E639C"

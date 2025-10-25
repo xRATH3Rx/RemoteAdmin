@@ -1,0 +1,264 @@
+﻿<Window x:Class="RemoteAdmin.Server.TaskSchedulerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Task Scheduler" 
+        Height="700" 
+        Width="1200"
+        Background="#1E1E1E"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize">
+
+    <Window.Resources>
+        <!-- Dark Theme Colors -->
+        <SolidColorBrush x:Key="WindowBackground" Color="#1E1E1E"/>
+        <SolidColorBrush x:Key="ControlBackground" Color="#2D2D30"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#3F3F46"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#007ACC"/>
+        <SolidColorBrush x:Key="HoverBrush" Color="#3E3E42"/>
+        <SolidColorBrush x:Key="SuccessBrush" Color="#10B981"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="#EF4444"/>
+        <SolidColorBrush x:Key="WarningBrush" Color="#F59E0B"/>
+        <SolidColorBrush x:Key="InfoBrush" Color="#3B82F6"/>
+
+        <!-- Button Style -->
+        <Style x:Key="DarkButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Opacity" Value="0.8"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.5"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ListView Style -->
+        <Style TargetType="ListView">
+            <Setter Property="Background" Value="{StaticResource ControlBackground}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <!-- ListViewItem Style -->
+        <Style TargetType="ListViewItem">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource HoverBrush}"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- TextBox Style -->
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{StaticResource ControlBackground}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="200"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0" 
+                   Text="Task Scheduler" 
+                   FontSize="24" 
+                   FontWeight="Bold" 
+                   Foreground="{StaticResource TextBrush}"
+                   Margin="0,0,0,15"/>
+
+        <!-- Search Bar -->
+        <Border Grid.Row="1" 
+                Background="{StaticResource ControlBackground}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="10"
+                Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" 
+                           Text="🔍 " 
+                           FontSize="16"
+                           Foreground="{StaticResource TextBrush}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+                <TextBox x:Name="txtSearch" 
+                         Grid.Column="1"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         TextChanged="txtSearch_TextChanged"/>
+            </Grid>
+        </Border>
+
+        <!-- Toolbar -->
+        <StackPanel Grid.Row="2" 
+                    Orientation="Horizontal" 
+                    Margin="0,0,0,10">
+            <Button x:Name="btnCreate" 
+                    Content="➕ Create Task" 
+                    Style="{StaticResource DarkButton}"
+                    Background="{StaticResource SuccessBrush}"
+                    Click="btnCreate_Click"
+                    Margin="0,0,10,0"/>
+            <Button x:Name="btnRun" 
+                    Content="▶️ Run" 
+                    Style="{StaticResource DarkButton}"
+                    Background="{StaticResource InfoBrush}"
+                    Click="btnRun_Click"
+                    Margin="0,0,10,0"/>
+            <Button x:Name="btnEnable" 
+                    Content="✓ Enable" 
+                    Style="{StaticResource DarkButton}"
+                    Background="{StaticResource SuccessBrush}"
+                    Click="btnEnable_Click"
+                    Margin="0,0,10,0"/>
+            <Button x:Name="btnDisable" 
+                    Content="⏸️ Disable" 
+                    Style="{StaticResource DarkButton}"
+                    Background="{StaticResource WarningBrush}"
+                    Click="btnDisable_Click"
+                    Margin="0,0,10,0"/>
+            <Button x:Name="btnDelete" 
+                    Content="🗑️ Delete" 
+                    Style="{StaticResource DarkButton}"
+                    Background="{StaticResource DangerBrush}"
+                    Click="btnDelete_Click"
+                    Margin="0,0,10,0"/>
+            <Button x:Name="btnExport" 
+                    Content="💾 Export" 
+                    Style="{StaticResource DarkButton}"
+                    Click="btnExport_Click"
+                    Margin="0,0,10,0"/>
+            <Button x:Name="btnRefresh" 
+                    Content="🔄 Refresh" 
+                    Style="{StaticResource DarkButton}"
+                    Click="btnRefresh_Click"/>
+        </StackPanel>
+
+        <!-- Tasks List -->
+        <ListView x:Name="lvTasks" 
+                  Grid.Row="3"
+                  SelectionMode="Extended"
+                  SelectionChanged="lvTasks_SelectionChanged">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Name" 
+                                   Width="250" 
+                                   DisplayMemberBinding="{Binding Name}"/>
+                    <GridViewColumn Header="State" 
+                                   Width="100">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding StateDisplay}" 
+                                           Foreground="{Binding StateColor}"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="Next Run Time" 
+                                   Width="150" 
+                                   DisplayMemberBinding="{Binding NextRunTimeDisplay}"/>
+                    <GridViewColumn Header="Last Run Time" 
+                                   Width="150" 
+                                   DisplayMemberBinding="{Binding LastRunTimeDisplay}"/>
+                    <GridViewColumn Header="Last Result" 
+                                   Width="150" 
+                                   DisplayMemberBinding="{Binding LastResultDisplay}"/>
+                    <GridViewColumn Header="Author" 
+                                   Width="150" 
+                                   DisplayMemberBinding="{Binding Author}"/>
+                    <GridViewColumn Header="Path" 
+                                   Width="250" 
+                                   DisplayMemberBinding="{Binding Path}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <!-- Details Panel -->
+        <GridSplitter Grid.Row="4" 
+                      Height="5" 
+                      HorizontalAlignment="Stretch" 
+                      Background="{StaticResource BorderBrush}"
+                      Margin="0,5"/>
+
+        <Border Grid.Row="5"
+                Background="{StaticResource ControlBackground}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="10">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="panelDetails">
+                    <TextBlock x:Name="txtDetails" 
+                               Text="Select a task to view details" 
+                               Foreground="{StaticResource TextBrush}"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="6" 
+                Background="{StaticResource ControlBackground}" 
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="10"
+                Margin="0,10,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="txtStatus" 
+                           Grid.Column="0"
+                           Text="Ready" 
+                           Foreground="{StaticResource TextBrush}"/>
+                <TextBlock x:Name="txtTaskCount" 
+                           Grid.Column="1"
+                           Text="0 tasks" 
+                           Foreground="{StaticResource TextBrush}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
