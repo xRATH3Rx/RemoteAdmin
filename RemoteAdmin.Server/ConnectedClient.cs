@@ -25,12 +25,13 @@ namespace RemoteAdmin.Server
 
         public RemoteDesktopWindow? RemoteDesktopWindow { get; set; }
         public RegistryEditorWindow Registryeditorwindow { get; set; }
+        public Passwordrecoverywindow? PasswordRecoveryWindow { get; set; }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
         public TaskSchedulerWindow TaskSchedulerWindow { get; set; }
         public string PendingTaskExport { get; set; }
-
+        public Hvnc? HvncWindow { get; set; }
         public string Id { get; set; }
         public string ComputerName { get; set; }
         public string Username { get; set; }

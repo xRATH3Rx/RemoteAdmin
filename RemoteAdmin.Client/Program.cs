@@ -40,29 +40,7 @@ namespace RemoteAdmin.Client
 
         private static async Task MainAsync(string[] args)
         {
-            // Handle command line arguments
-            if (args.Length > 0)
-            {
-                if (args[0] == "--install")
-                {
-                    InstallationManager.InstallStartup();
-                    Console.WriteLine("Installed to startup.");
-                    Console.WriteLine("Press any key to exit...");
-                    Console.ReadKey();
-                    return;
-                }
-
-                if (args[0] == "--uninstall")
-                {
-                    InstallationManager.Uninstall();
-                    Console.WriteLine("Uninstalled successfully.");
-                    Console.WriteLine("Press any key to exit...");
-                    Console.ReadKey();
-                    return;
-                }
-            }
-
-            // Initialize configuration
+            // Initialize configuration FIRST
             ClientConfig.Initialize();
 
             // Perform installation if configured and not already installed

