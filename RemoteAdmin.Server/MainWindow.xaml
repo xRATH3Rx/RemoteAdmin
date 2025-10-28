@@ -299,6 +299,8 @@
                                 </MenuItem>
                                 <Separator/>
                                 <MenuItem Header="Misc Tools">
+                                    <MenuItem Header="Webcam Viewer" Click="Webcam_Click"/>
+                                    <MenuItem Header="Audio Listener" Click="Audio_Click"/>
                                     <MenuItem Header="TODO Hidden VNC" Click="MenuItem_OpenHvnc_Click">
                                         <MenuItem.Icon>
                                             <TextBlock Text="🖥️" FontSize="14"/>

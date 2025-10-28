@@ -257,6 +257,33 @@ namespace RemoteAdmin.Server.Networking
                             Console.WriteLine($"╚══════════════════════════════════════════════════════════════╝");
                             Console.WriteLine($"");
                         }
+                        else if (msg is WebcamFrameMessage webcamFrame)
+                        {
+                            _dispatcher.Invoke(() => client.WebcamViewerWindow?.UpdateWebcamFrame(
+                                webcamFrame.ImageData,
+                                webcamFrame.Width,
+                                webcamFrame.Height,
+                                webcamFrame.FrameNumber));
+                        }
+                        else if (msg is WebcamListMessage webcamList)
+                        {
+                            Console.WriteLine($"Received webcam list: {webcamList.Cameras.Length} cameras");
+                            _dispatcher.Invoke(() => client.WebcamViewerWindow?.UpdateWebcamList(webcamList.Cameras));
+                        }
+                        else if (msg is AudioChunkMessage audioChunk)
+                        {
+                            _dispatcher.Invoke(() =>
+                            {
+                                if (audioChunk.SourceType == AudioSourceType.Microphone)
+                                {
+                                    client.AudioMonitorWindow?.PlayMicrophoneAudio(audioChunk);
+                                }
+                                else if (audioChunk.SourceType == AudioSourceType.SystemAudio)
+                                {
+                                    client.AudioMonitorWindow?.PlaySystemAudio(audioChunk);
+                                }
+                            });
+                        }
 
                     }
                 }

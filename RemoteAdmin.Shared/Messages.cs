@@ -993,4 +993,109 @@ public class FileChunkMessage : Message
         public bool Success { get; set; }
         public string ErrorMessage { get; set; }
     }
+
+    public class StartWebcamMessage : Message
+    {
+        public StartWebcamMessage()
+        {
+            Type = "StartWebcam";
+        }
+
+        public int CameraIndex { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public int Quality { get; set; }
+    }
+
+    public class StopWebcamMessage : Message
+    {
+        public StopWebcamMessage()
+        {
+            Type = "StopWebcam";
+        }
+    }
+
+    public class WebcamFrameMessage : Message
+    {
+        public WebcamFrameMessage()
+        {
+            Type = "WebcamFrame";
+        }
+
+        public byte[] ImageData { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public long FrameNumber { get; set; }
+    }
+
+    public class GetWebcamListMessage : Message
+    {
+        public GetWebcamListMessage()
+        {
+            Type = "GetWebcamList";
+        }
+    }
+
+    public class WebcamListMessage : Message
+    {
+        public WebcamListMessage()
+        {
+            Type = "WebcamList";
+        }
+
+        public WebcamInfo[] Cameras { get; set; }
+    }
+
+    public class WebcamInfo
+    {
+        public int Index { get; set; }
+        public string Name { get; set; }
+    }
+
+    // ==================== AUDIO MESSAGES ====================
+
+    public class StartAudioStreamMessage : Message
+    {
+        public StartAudioStreamMessage()
+        {
+            Type = "StartAudioStream";
+        }
+
+        public AudioSourceType SourceType { get; set; }
+        public int SampleRate { get; set; }
+        public int Channels { get; set; }
+        public int BitsPerSample { get; set; }
+    }
+
+    public class StopAudioStreamMessage : Message
+    {
+        public StopAudioStreamMessage()
+        {
+            Type = "StopAudioStream";
+        }
+
+        public AudioSourceType SourceType { get; set; }
+    }
+
+    public class AudioChunkMessage : Message
+    {
+        public AudioChunkMessage()
+        {
+            Type = "AudioChunk";
+        }
+
+        public byte[] AudioData { get; set; }
+        public AudioSourceType SourceType { get; set; }
+        public int SampleRate { get; set; }
+        public int Channels { get; set; }
+        public int BitsPerSample { get; set; }
+        public long SequenceNumber { get; set; }
+    }
+
+    public enum AudioSourceType
+    {
+        Microphone,
+        SystemAudio
+    }
+
 }

