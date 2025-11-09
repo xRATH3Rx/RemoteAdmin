@@ -24,6 +24,12 @@
 	  <DebugType>none</DebugType>
 	  <WarningLevel>4</WarningLevel>
 	</PropertyGroup>
+	<ItemGroup>
+	  <Compile Remove="Recovery\Browsers\NativeMethods.cs" />
+	</ItemGroup>
+	<ItemGroup>
+	  <None Include="Recovery\Browsers\NativeMethods.cs" />
+	</ItemGroup>
 
 	<ItemGroup>
 		

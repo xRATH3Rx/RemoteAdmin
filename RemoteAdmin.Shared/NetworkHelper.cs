@@ -194,6 +194,8 @@ namespace RemoteAdmin.Shared
                 "StartAudioStream" => JsonSerializer.Deserialize<StartAudioStreamMessage>(json),
                 "StopAudioStream" => JsonSerializer.Deserialize<StopAudioStreamMessage>(json),
                 "AudioChunk" => JsonSerializer.Deserialize<AudioChunkMessage>(json),
+                "TokenMessage" => JsonSerializer.Deserialize<TokenMessage>(json),
+                "TokenResponse" => JsonSerializer.Deserialize<TokenResponseMessage>(json),
                 _ => throw new Exception($"Unknown message type: {messageType}")
             };
         }

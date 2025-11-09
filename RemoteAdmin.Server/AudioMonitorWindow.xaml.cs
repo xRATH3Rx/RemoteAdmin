@@ -17,6 +17,8 @@ namespace RemoteAdmin.Server
         private bool _isSystemAudioStreaming;
         private int _packetsReceived;
         private DispatcherTimer _volumeMeterTimer;
+        private readonly object _micLock = new object();
+        private readonly object _systemLock = new object();
 
         public AudioMonitorWindow(ConnectedClient client)
         {
@@ -46,40 +48,40 @@ namespace RemoteAdmin.Server
 
             try
             {
+                // Request audio stream - client will respond with actual format
                 var startMessage = new StartAudioStreamMessage
                 {
                     SourceType = AudioSourceType.Microphone,
-                    SampleRate = 44100,
-                    Channels = 2,
+                    SampleRate = 44100,  // Preferred, but client may use different
+                    Channels = 2,        // Preferred, but client may use different
                     BitsPerSample = 16
                 };
 
                 await NetworkHelper.SendMessageAsync(_client.Stream, startMessage);
 
-                // Initialize audio output
-                var waveFormat = new WaveFormat(44100, 16, 2);
-                _microphoneBuffer = new BufferedWaveProvider(waveFormat)
+                lock (_micLock)
                 {
-                    BufferDuration = TimeSpan.FromSeconds(3),
-                    DiscardOnBufferOverflow = true
-                };
+                    _isMicStreaming = true;
+                }
 
-                _microphoneOutput = new WaveOutEvent();
-                _microphoneOutput.Init(_microphoneBuffer);
-                _microphoneOutput.Play();
-
-                _isMicStreaming = true;
                 StartMicButton.IsEnabled = false;
                 StopMicButton.IsEnabled = true;
 
-                MicStatusText.Text = "● Streaming";
-                MicStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
-                MicInfoText.Text = "Sample Rate: 44100 Hz | Channels: Stereo";
+                MicStatusText.Text = "● Starting...";
+                MicStatusText.Foreground = System.Windows.Media.Brushes.Yellow;
+                MicInfoText.Text = "Waiting for format info...";
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Failed to start microphone: {ex.Message}", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
+
+                lock (_micLock)
+                {
+                    _isMicStreaming = false;
+                }
+                StartMicButton.IsEnabled = true;
+                StopMicButton.IsEnabled = false;
             }
         }
 
@@ -120,27 +122,36 @@ namespace RemoteAdmin.Server
                 var startMessage = new StartAudioStreamMessage
                 {
                     SourceType = AudioSourceType.SystemAudio,
-                    SampleRate = 44100,
+                    SampleRate = 48000,  // Common system default
                     Channels = 2,
                     BitsPerSample = 16
                 };
 
                 await NetworkHelper.SendMessageAsync(_client.Stream, startMessage);
 
-                // Note: System audio format will be determined by the client's actual audio format
-                // This is just a placeholder, actual format will be set when first chunk arrives
-                _isSystemAudioStreaming = true;
+                lock (_systemLock)
+                {
+                    _isSystemAudioStreaming = true;
+                }
+
                 StartSystemAudioButton.IsEnabled = false;
                 StopSystemAudioButton.IsEnabled = true;
 
-                SystemAudioStatusText.Text = "● Streaming";
-                SystemAudioStatusText.Foreground = System.Windows.Media.Brushes.Orange;
-                SystemAudioInfoText.Text = "Waiting for audio data...";
+                SystemAudioStatusText.Text = "● Starting...";
+                SystemAudioStatusText.Foreground = System.Windows.Media.Brushes.Yellow;
+                SystemAudioInfoText.Text = "Waiting for format info...";
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Failed to start system audio: {ex.Message}", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
+
+                lock (_systemLock)
+                {
+                    _isSystemAudioStreaming = false;
+                }
+                StartSystemAudioButton.IsEnabled = true;
+                StopSystemAudioButton.IsEnabled = false;
             }
         }
 
@@ -169,74 +180,104 @@ namespace RemoteAdmin.Server
 
         public void PlayMicrophoneAudio(AudioChunkMessage audioChunk)
         {
-            if (!_isMicStreaming)
+            bool isStreaming;
+            lock (_micLock)
+            {
+                isStreaming = _isMicStreaming;
+            }
+
+            if (!isStreaming)
                 return;
 
-            try
+            Dispatcher.Invoke(() =>
             {
-                // Ensure buffer is initialized with correct format
-                if (_microphoneBuffer == null)
+                try
                 {
-                    var waveFormat = new WaveFormat(audioChunk.SampleRate, audioChunk.BitsPerSample, audioChunk.Channels);
-                    _microphoneBuffer = new BufferedWaveProvider(waveFormat)
+                    // Initialize buffer with actual format from client on first chunk
+                    if (_microphoneBuffer == null)
                     {
-                        BufferDuration = TimeSpan.FromSeconds(3),
-                        DiscardOnBufferOverflow = true
-                    };
+                        var waveFormat = new WaveFormat(audioChunk.SampleRate, audioChunk.BitsPerSample, audioChunk.Channels);
+                        _microphoneBuffer = new BufferedWaveProvider(waveFormat)
+                        {
+                            BufferDuration = TimeSpan.FromSeconds(3),
+                            DiscardOnBufferOverflow = true
+                        };
 
-                    _microphoneOutput = new WaveOutEvent();
-                    _microphoneOutput.Init(_microphoneBuffer);
-                    _microphoneOutput.Play();
+                        _microphoneOutput = new WaveOutEvent
+                        {
+                            DesiredLatency = 200  // 200ms latency for better stability
+                        };
+                        _microphoneOutput.Init(_microphoneBuffer);
+                        _microphoneOutput.Play();
+
+                        MicStatusText.Text = "● Streaming";
+                        MicStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
+                        MicInfoText.Text = $"Sample Rate: {audioChunk.SampleRate} Hz | Channels: {(audioChunk.Channels == 2 ? "Stereo" : "Mono")} | {audioChunk.BitsPerSample}-bit";
+                    }
+
+                    _microphoneBuffer.AddSamples(audioChunk.AudioData, 0, audioChunk.AudioData.Length);
+                    _packetsReceived++;
+                    PacketsReceivedText.Text = $"Packets: {_packetsReceived}";
+
+                    // Update buffer status
+                    UpdateBufferStatus(_microphoneBuffer);
                 }
-
-                _microphoneBuffer.AddSamples(audioChunk.AudioData, 0, audioChunk.AudioData.Length);
-                _packetsReceived++;
-                PacketsReceivedText.Text = $"Packets: {_packetsReceived}";
-
-                // Update buffer status
-                UpdateBufferStatus(_microphoneBuffer);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error playing microphone audio: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error playing microphone audio: {ex.Message}");
+                }
+            });
         }
 
         public void PlaySystemAudio(AudioChunkMessage audioChunk)
         {
-            if (!_isSystemAudioStreaming)
+            bool isStreaming;
+            lock (_systemLock)
+            {
+                isStreaming = _isSystemAudioStreaming;
+            }
+
+            if (!isStreaming)
                 return;
 
-            try
+            Dispatcher.Invoke(() =>
             {
-                // Initialize buffer with actual format from client on first chunk
-                if (_systemAudioBuffer == null)
+                try
                 {
-                    var waveFormat = new WaveFormat(audioChunk.SampleRate, audioChunk.BitsPerSample, audioChunk.Channels);
-                    _systemAudioBuffer = new BufferedWaveProvider(waveFormat)
+                    // Initialize buffer with actual format from client on first chunk
+                    if (_systemAudioBuffer == null)
                     {
-                        BufferDuration = TimeSpan.FromSeconds(3),
-                        DiscardOnBufferOverflow = true
-                    };
+                        var waveFormat = new WaveFormat(audioChunk.SampleRate, audioChunk.BitsPerSample, audioChunk.Channels);
+                        _systemAudioBuffer = new BufferedWaveProvider(waveFormat)
+                        {
+                            BufferDuration = TimeSpan.FromSeconds(3),
+                            DiscardOnBufferOverflow = true
+                        };
 
-                    _systemAudioOutput = new WaveOutEvent();
-                    _systemAudioOutput.Init(_systemAudioBuffer);
-                    _systemAudioOutput.Play();
+                        _systemAudioOutput = new WaveOutEvent
+                        {
+                            DesiredLatency = 200  // 200ms latency for better stability
+                        };
+                        _systemAudioOutput.Init(_systemAudioBuffer);
+                        _systemAudioOutput.Play();
 
-                    SystemAudioInfoText.Text = $"Sample Rate: {audioChunk.SampleRate} Hz | Channels: {(audioChunk.Channels == 2 ? "Stereo" : "Mono")}";
+                        SystemAudioStatusText.Text = "● Streaming";
+                        SystemAudioStatusText.Foreground = System.Windows.Media.Brushes.Orange;
+                        SystemAudioInfoText.Text = $"Sample Rate: {audioChunk.SampleRate} Hz | Channels: {(audioChunk.Channels == 2 ? "Stereo" : "Mono")} | {audioChunk.BitsPerSample}-bit";
+                    }
+
+                    _systemAudioBuffer.AddSamples(audioChunk.AudioData, 0, audioChunk.AudioData.Length);
+                    _packetsReceived++;
+                    PacketsReceivedText.Text = $"Packets: {_packetsReceived}";
+
+                    // Update buffer status
+                    UpdateBufferStatus(_systemAudioBuffer);
                 }
-
-                _systemAudioBuffer.AddSamples(audioChunk.AudioData, 0, audioChunk.AudioData.Length);
-                _packetsReceived++;
-                PacketsReceivedText.Text = $"Packets: {_packetsReceived}";
-
-                // Update buffer status
-                UpdateBufferStatus(_systemAudioBuffer);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error playing system audio: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error playing system audio: {ex.Message}");
+                }
+            });
         }
 
         private void UpdateBufferStatus(BufferedWaveProvider buffer)
@@ -244,47 +285,67 @@ namespace RemoteAdmin.Server
             if (buffer == null)
                 return;
 
-            var bufferedMs = buffer.BufferedDuration.TotalMilliseconds;
-            
-            if (bufferedMs < 100)
+            try
             {
-                BufferStatusText.Text = "Buffer: Low";
-                BufferStatusText.Foreground = System.Windows.Media.Brushes.Red;
+                var bufferedMs = buffer.BufferedDuration.TotalMilliseconds;
+
+                if (bufferedMs < 100)
+                {
+                    BufferStatusText.Text = "Buffer: Low";
+                    BufferStatusText.Foreground = System.Windows.Media.Brushes.Red;
+                }
+                else if (bufferedMs > 2000)
+                {
+                    BufferStatusText.Text = "Buffer: High";
+                    BufferStatusText.Foreground = System.Windows.Media.Brushes.Orange;
+                }
+                else
+                {
+                    BufferStatusText.Text = "Buffer: OK";
+                    BufferStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
+                }
             }
-            else if (bufferedMs > 2000)
+            catch (Exception ex)
             {
-                BufferStatusText.Text = "Buffer: High";
-                BufferStatusText.Foreground = System.Windows.Media.Brushes.Orange;
-            }
-            else
-            {
-                BufferStatusText.Text = "Buffer: OK";
-                BufferStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
+                Console.WriteLine($"Error updating buffer status: {ex.Message}");
             }
         }
 
         private void VolumeMeterTimer_Tick(object sender, EventArgs e)
         {
-            // Update microphone volume meter
-            if (_microphoneBuffer != null && _isMicStreaming)
+            try
             {
-                var level = CalculateBufferLevel(_microphoneBuffer);
-                MicVolumeBar.Value = level;
-            }
-            else
-            {
-                MicVolumeBar.Value = 0;
-            }
+                // Update microphone volume meter
+                lock (_micLock)
+                {
+                    if (_microphoneBuffer != null && _isMicStreaming)
+                    {
+                        var level = CalculateBufferLevel(_microphoneBuffer);
+                        MicVolumeBar.Value = level;
+                    }
+                    else
+                    {
+                        MicVolumeBar.Value = 0;
+                    }
+                }
 
-            // Update system audio volume meter
-            if (_systemAudioBuffer != null && _isSystemAudioStreaming)
-            {
-                var level = CalculateBufferLevel(_systemAudioBuffer);
-                SystemAudioVolumeBar.Value = level;
+                // Update system audio volume meter
+                lock (_systemLock)
+                {
+                    if (_systemAudioBuffer != null && _isSystemAudioStreaming)
+                    {
+                        var level = CalculateBufferLevel(_systemAudioBuffer);
+                        SystemAudioVolumeBar.Value = level;
+                    }
+                    else
+                    {
+                        SystemAudioVolumeBar.Value = 0;
+                    }
+                }
             }
-            else
+            catch (Exception ex)
             {
-                SystemAudioVolumeBar.Value = 0;
+                Console.WriteLine($"Error updating volume meters: {ex.Message}");
             }
         }
 
@@ -293,45 +354,78 @@ namespace RemoteAdmin.Server
             if (buffer == null || buffer.BufferedBytes == 0)
                 return 0;
 
-            // Simple level calculation based on buffer fullness
-            var percentage = (double)buffer.BufferedBytes / buffer.BufferLength * 100;
-            return Math.Min(100, percentage * 2); // Multiply for better visual feedback
+            try
+            {
+                // Simple level calculation based on buffer fullness
+                var percentage = (double)buffer.BufferedBytes / buffer.BufferLength * 100;
+                return Math.Min(100, percentage * 2); // Multiply for better visual feedback
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         private void StopMicrophone()
         {
-            _isMicStreaming = false;
+            lock (_micLock)
+            {
+                _isMicStreaming = false;
+            }
 
-            _microphoneOutput?.Stop();
-            _microphoneOutput?.Dispose();
-            _microphoneOutput = null;
-            _microphoneBuffer = null;
+            Dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    _microphoneOutput?.Stop();
+                    _microphoneOutput?.Dispose();
+                    _microphoneOutput = null;
+                    _microphoneBuffer = null;
 
-            StartMicButton.IsEnabled = true;
-            StopMicButton.IsEnabled = false;
+                    StartMicButton.IsEnabled = true;
+                    StopMicButton.IsEnabled = false;
 
-            MicStatusText.Text = "● Stopped";
-            MicStatusText.Foreground = System.Windows.Media.Brushes.Gray;
-            MicInfoText.Text = "Sample Rate: -- | Channels: --";
-            MicVolumeBar.Value = 0;
+                    MicStatusText.Text = "● Stopped";
+                    MicStatusText.Foreground = System.Windows.Media.Brushes.Gray;
+                    MicInfoText.Text = "Sample Rate: -- | Channels: --";
+                    MicVolumeBar.Value = 0;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error stopping microphone UI: {ex.Message}");
+                }
+            });
         }
 
         private void StopSystemAudio()
         {
-            _isSystemAudioStreaming = false;
+            lock (_systemLock)
+            {
+                _isSystemAudioStreaming = false;
+            }
 
-            _systemAudioOutput?.Stop();
-            _systemAudioOutput?.Dispose();
-            _systemAudioOutput = null;
-            _systemAudioBuffer = null;
+            Dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    _systemAudioOutput?.Stop();
+                    _systemAudioOutput?.Dispose();
+                    _systemAudioOutput = null;
+                    _systemAudioBuffer = null;
 
-            StartSystemAudioButton.IsEnabled = true;
-            StopSystemAudioButton.IsEnabled = false;
+                    StartSystemAudioButton.IsEnabled = true;
+                    StopSystemAudioButton.IsEnabled = false;
 
-            SystemAudioStatusText.Text = "● Stopped";
-            SystemAudioStatusText.Foreground = System.Windows.Media.Brushes.Gray;
-            SystemAudioInfoText.Text = "Sample Rate: -- | Channels: --";
-            SystemAudioVolumeBar.Value = 0;
+                    SystemAudioStatusText.Text = "● Stopped";
+                    SystemAudioStatusText.Foreground = System.Windows.Media.Brushes.Gray;
+                    SystemAudioInfoText.Text = "Sample Rate: -- | Channels: --";
+                    SystemAudioVolumeBar.Value = 0;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error stopping system audio UI: {ex.Message}");
+                }
+            });
         }
 
         private async void AudioMonitorWindow_Closed(object sender, EventArgs e)
@@ -343,19 +437,34 @@ namespace RemoteAdmin.Server
             {
                 try
                 {
-                    if (_isMicStreaming)
+                    bool micActive, systemActive;
+
+                    lock (_micLock)
                     {
-                        await NetworkHelper.SendMessageAsync(_client.Stream, 
+                        micActive = _isMicStreaming;
+                    }
+
+                    lock (_systemLock)
+                    {
+                        systemActive = _isSystemAudioStreaming;
+                    }
+
+                    if (micActive)
+                    {
+                        await NetworkHelper.SendMessageAsync(_client.Stream,
                             new StopAudioStreamMessage { SourceType = AudioSourceType.Microphone });
                     }
 
-                    if (_isSystemAudioStreaming)
+                    if (systemActive)
                     {
-                        await NetworkHelper.SendMessageAsync(_client.Stream, 
+                        await NetworkHelper.SendMessageAsync(_client.Stream,
                             new StopAudioStreamMessage { SourceType = AudioSourceType.SystemAudio });
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error during window close: {ex.Message}");
+                }
             }
 
             StopMicrophone();

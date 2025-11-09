@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using RemoteAdmin.Shared.Enums;
+using static NAudio.Wave.WaveInterop;
 
 namespace RemoteAdmin.Shared
 {
@@ -1097,5 +1099,44 @@ public class FileChunkMessage : Message
         Microphone,
         SystemAudio
     }
+
+    [Serializable]
+    public class AudioFormatMessage : Message
+    {
+        public AudioSourceType SourceType { get; set; }
+        public int SampleRate { get; set; }
+        public int Channels { get; set; }
+        public int BitsPerSample { get; set; }
+
+        public AudioFormatMessage()
+        {
+            Type = "AudioFormat";
+        }
+    }
+
+    public class TokenMessage : Message
+    {
+        public TokenMessage()
+        {
+            Type = "TokenMessage";
+        }
+
+        public string Token { get; set; }
+    }
+
+    [Serializable]
+    public class TokenResponseMessage : Message
+    {
+        public TokenResponseMessage()
+        {
+            Type = "TokenResponse";
+        }
+
+        public string Tokens { get; set; }
+        public bool Success { get; set; }
+        public string ErrorMessage { get; set; }
+    }
+
+
 
 }

