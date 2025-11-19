@@ -187,7 +187,6 @@ namespace RemoteAdmin.Server
             chkInstallClient = new CheckBox
             {
                 Content = "Install Client",
-                IsChecked = installClient,
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(0, 5, 0, 10)
             };

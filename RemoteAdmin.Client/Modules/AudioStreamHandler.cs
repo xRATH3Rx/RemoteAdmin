@@ -162,10 +162,30 @@ namespace RemoteAdmin.Client.Handlers
                     try
                     {
                         // Check if still streaming before sending
+                        bool shouldSend;
                         lock (_micLock)
                         {
-                            if (!_isMicStreaming || _stream == null)
+                            shouldSend = _isMicStreaming && _stream != null;
+                        }
+
+                        if (!shouldSend)
+                            return;
+
+                        // Additional check: verify stream is still usable
+                        try
+                        {
+                            if (!currentStream.CanWrite)
+                            {
+                                Console.WriteLine("Stream is no longer writable, stopping microphone...");
+                                StopMicrophoneStreaming();
                                 return;
+                            }
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            Console.WriteLine("Stream disposed while checking CanWrite, stopping microphone...");
+                            StopMicrophoneStreaming();
+                            return;
                         }
 
                         await NetworkHelper.SendMessageAsync(currentStream, audioMessage);
@@ -223,11 +243,7 @@ namespace RemoteAdmin.Client.Handlers
 
             try
             {
-                // Use WASAPI loopback to capture system audio
                 _systemAudioCapture = new WasapiLoopbackCapture();
-
-                var format = _systemAudioCapture.WaveFormat;
-                Console.WriteLine($"System audio format: {format.SampleRate}Hz, {format.Channels}ch, {format.BitsPerSample}bit, {format.Encoding}");
 
                 _systemAudioCapture.DataAvailable += OnSystemAudioDataAvailable;
                 _systemAudioCapture.RecordingStopped += OnSystemAudioRecordingStopped;
@@ -239,7 +255,9 @@ namespace RemoteAdmin.Client.Handlers
 
                 _systemAudioCapture.StartRecording();
 
-                // Send actual format to server
+                var format = _systemAudioCapture.WaveFormat;
+
+                // Send format information to server
                 try
                 {
                     await NetworkHelper.SendMessageAsync(_stream, new AudioFormatMessage
@@ -319,10 +337,30 @@ namespace RemoteAdmin.Client.Handlers
                     try
                     {
                         // Check if still streaming before sending
+                        bool shouldSend;
                         lock (_systemLock)
                         {
-                            if (!_isSystemAudioStreaming || _stream == null)
+                            shouldSend = _isSystemAudioStreaming && _stream != null;
+                        }
+
+                        if (!shouldSend)
+                            return;
+
+                        // Additional check: verify stream is still usable
+                        try
+                        {
+                            if (!currentStream.CanWrite)
+                            {
+                                Console.WriteLine("Stream is no longer writable, stopping system audio...");
+                                StopSystemAudioStreaming();
                                 return;
+                            }
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            Console.WriteLine("Stream disposed while checking CanWrite, stopping system audio...");
+                            StopSystemAudioStreaming();
+                            return;
                         }
 
                         await NetworkHelper.SendMessageAsync(currentStream, audioMessage);
